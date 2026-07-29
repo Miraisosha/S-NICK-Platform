@@ -692,10 +692,28 @@ stateDiagram-v2
 
 - 緯度と経度を数値で保存します。
 - 緯度は-90度から90度、経度は-180度から180度の範囲を確認します。
-- 座標を直接入力する方法と、地図上で位置を選択する方法を候補とします。
+- Google Maps PlatformのAPIを使用して施設の地図情報と座標を取得する構成を候補とします。
+- 座標を直接入力する方法と、地図上で位置を選択・補正する方法を用意します。
 - 登録済み施設の場所を地図サービスで開けるリンクを表示する構成を候補とします。
 
-使用する地図サービス、地図からの座標取得、住所項目を別に持つかは検討中です。
+地図表示ライブラリは、正式名称を**OpenLayers**または**Leaflet**とし、比較検証後に選定します。どちらもVue.jsの画面へ組み込み、マーカーの表示・移動等に利用できる候補です。
+
+#### Google Maps Platformとの組合せ
+
+[Google Geocoding API](https://developers.google.com/maps/documentation/geocoding)は、住所等を緯度・経度へ変換できます。ただし、[GoogleのGeocoding APIポリシー](https://developers.google.com/maps/documentation/geocoding/policies)では、Geocoding APIの結果を地図上へ表示する場合はGoogle Map上で表示する必要があります。そのため、Googleで取得した結果をOpenLayersまたはLeafletの地図へ表示する構成は、現時点では採用確定としません。
+
+規約に適合する構成として、次のいずれかを選定します。
+
+| 構成案 | 位置情報の取得 | 地図表示 |
+|---|---|---|
+| A | Google Maps Platform | Google Maps |
+| B | Google以外の利用条件に適合する位置検索サービス | OpenLayersまたはLeaflet |
+
+OpenLayersとLeafletは地図の操作・表示を担うライブラリであり、背景地図、位置検索、座標取得のデータ提供元は別途選ぶ必要があります。採用するAPI、背景地図、料金、利用規約、クレジット表示を確認して決定します。
+
+Google Maps Platformを採用する場合は、API呼出しをCakePHP側から行う構成を基本候補とし、APIキーをリポジトリやブラウザへ露出させません。APIキーの利用制限、使用量上限、エラー処理、利用規約・プライバシーポリシー、取得結果の保存条件も実装前に確認します。
+
+使用するGoogle APIの種類（Geocoding API、Places API等）、住所項目を別に持つか、Google Maps表示とOpenLayers／Leaflet表示のどちらを採用するかは検討中です。
 
 ### 5.3 一覧・編集
 

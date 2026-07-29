@@ -9,10 +9,18 @@
 | バックエンド | PHP 8.5 / CakePHP |
 | フロントエンド | Vue.js / Bootstrap |
 | データベース | MySQL |
+| 地図・位置情報 | Google Maps Platform、OpenLayers、Leafletを比較検討中 |
 | ソース管理 | GitHub |
 | リポジトリ | `Miraisosha/S-NICK-Platform` |
 
 CakePHP、Vue.js、Bootstrap、MySQL、Node.jsなどの詳細バージョンは検討中です。
+
+Google Maps Platformで取得した結果を地図表示する場合の利用条件を踏まえ、位置情報取得と地図表示は次のいずれかを採用します。
+
+- Google Maps PlatformとGoogle Mapsを組み合わせる
+- 利用条件に適合するGoogle以外の位置情報サービスとOpenLayersまたはLeafletを組み合わせる
+
+OpenLayersまたはLeafletのどちらを採用するか、背景地図と位置検索サービスは検討中です。
 
 ## 2. 論理構成
 
