@@ -11,6 +11,7 @@
 ## 作業前の確認
 
 1. `README.md` と `docs/` 配下の関連文書を確認してください。
+   - 実装に関する作業では、`docs/specifications/README.md` と対象利用者の仕様を優先して確認してください。
 2. 既存内容との重複や矛盾を確認してください。
 3. 変更対象と影響範囲を明確にしてください。
 4. 既存の決定事項を変更する必要がある場合は、理由を示して確認を求めてください。
@@ -38,6 +39,8 @@
 
 ## 主要な参照文書
 
+- `docs/specifications/README.md`
+- `docs/specifications/FunctionalIndex.md`
 - `docs/01_project-overview.md`
 - `docs/02_system-architecture.md`
 - `docs/03_service-domain-plan.md`

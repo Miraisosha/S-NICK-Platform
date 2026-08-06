@@ -1,0 +1,129 @@
+version: "1.0-draft"
+document: ../300_Marker.md
+note: "試合状態とゲーム状態を分離する。match_state_machine.statesを試合状態の正式な内部コードとし、例外遷移は詳細設計で確定する。"
+
+match_state_machine:
+  initial: scheduled
+  terminal:
+    - finished
+    - forfeited
+    - awarded
+    - cancelled
+  states:
+    - scheduled
+    - warmup
+    - preparing
+    - in_progress
+    - interval
+    - injury_time
+    - suspended
+    - finished
+    - forfeited
+    - awarded
+    - cancelled
+  transitions:
+    - from: scheduled
+      event: start_warmup
+      to: warmup
+    - from: warmup
+      event: warmup_timeout
+      to: preparing
+    - from: preparing
+      event: start_match
+      to: in_progress
+    - from: in_progress
+      event: game_finished_match_continues
+      to: interval
+    - from: interval
+      event: start_next_game
+      to: in_progress
+    - from: in_progress
+      event: start_injury_time
+      to: injury_time
+    - from: injury_time
+      event: resume_match
+      to: in_progress
+    - from: in_progress
+      event: suspend_match
+      to: suspended
+    - from: suspended
+      event: resume_match
+      to: in_progress
+    - from: in_progress
+      event: confirm_match_result
+      to: finished
+    - from: "scheduled|warmup|preparing|in_progress|interval|injury_time|suspended"
+      event: forfeit_match
+      to: forfeited
+    - from: "scheduled|warmup|preparing|in_progress|interval|injury_time|suspended"
+      event: conduct_match
+      to: awarded
+    - from: "scheduled|warmup|preparing|in_progress|interval|injury_time|suspended"
+      event: cancel_match
+      to: cancelled
+  exception_transitions:
+    - from: finished
+      event: resume_accidental_finish
+      to: in_progress
+      conditions:
+        - no_other_active_match_on_same_court
+        - no_dependent_match_started
+      confirmation: required
+      audit: required
+
+game_state_machine:
+  initial: not_started
+  terminal:
+    - finished
+    - awarded
+  states:
+    - not_started
+    - in_progress
+    - finished
+    - awarded
+  transitions:
+    - from: not_started
+      event: start_game
+      to: in_progress
+    - from: in_progress
+      event: scoring_rule_satisfied
+      to: finished
+    - from: in_progress
+      event: conduct_game
+      to: awarded
+
+timer_state_machine:
+  states:
+    - idle
+    - running
+    - paused
+    - expired
+    - cancelled
+  transitions:
+    - from: idle
+      event: start
+      to: running
+    - from: running
+      event: pause
+      to: paused
+    - from: paused
+      event: resume
+      to: running
+    - from: running
+      event: timeout
+      to: expired
+    - from: "running|paused"
+      event: cancel
+      to: cancelled
+
+undo_policy:
+  target: latest_event_only
+  recompute_state: true
+  terminal_state_undo: "permission_pending"
+
+result_correction:
+  normal_authorized_roles:
+    - event_owner
+    - event_operations_manager
+  platform_admin: maintenance_only
+  audit_required: true

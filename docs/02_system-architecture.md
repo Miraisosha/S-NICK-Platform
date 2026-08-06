@@ -9,20 +9,17 @@
 | バックエンド | PHP 8.5 / CakePHP |
 | フロントエンド | Vue.js / Bootstrap |
 | データベース | MySQL |
-| 地図・位置情報 | Google Maps Platform、OpenLayers、Leafletを比較検討中 |
+| 地図・位置情報 | Google Maps Platform Map Tiles API／Geocoding APIまたはPlaces API／OpenLayers |
 | ソース管理 | GitHub |
 | リポジトリ | `Miraisosha/S-NICK-Platform` |
 
 CakePHP、Vue.js、Bootstrap、MySQL、Node.jsなどの詳細バージョンは検討中です。
 
-Google Maps Platformで取得した結果を地図表示する場合の利用条件を踏まえ、位置情報取得と地図表示は次のいずれかを採用します。
-
-- Google Maps PlatformとGoogle Mapsを組み合わせる
-- 利用条件に適合するGoogle以外の位置情報サービスとOpenLayersまたはLeafletを組み合わせる
-
-OpenLayersまたはLeafletのどちらを採用するか、背景地図と位置検索サービスは検討中です。
+Google Maps PlatformのMap Tiles APIをGoogle背景地図として使用し、画面の描画・操作にはOpenLayersを使用します。住所検索・座標取得にはGeocoding APIまたはPlaces APIを使用し、結果を同じGoogle背景地図上へ表示します。Googleロゴとデータ帰属表示、キャッシュ制限、APIキー制限等のポリシーを遵守し、実装前に料金と最新の利用条件を再確認します。
 
 ## 2. 論理構成
+
+初期構成は、CakePHPバックエンド1つ、MySQLデータベース1つからなる単一アプリケーションとします。`public`、`operator`、`marker`、`player`、`admin`は利用者別のURL・画面・権限区分であり、別々の業務データや試合状態を持つ独立システムではありません。
 
 ```mermaid
 flowchart LR
@@ -47,7 +44,7 @@ flowchart LR
 
 | 画面 | 主な利用者 | 特徴 |
 |---|---|---|
-| 管理画面 | 運営・スタッフ | タイトル、カテゴリ、選手、試合、コート等の設定 |
+| 管理画面 | 運営・スタッフ | イベント、カテゴリ、選手、試合、コート等の設定 |
 | マーカー画面 | マーカー担当者 | タップしやすい得点入力 |
 | 観客表示画面 | 観客 | タブレット・大型モニター向け全画面表示 |
 | OBSオーバーレイ | 配信担当者 | 背景透過、映像上に重ねる情報だけを表示 |
@@ -76,7 +73,7 @@ sequenceDiagram
     A-->>O: 更新を通知または取得
 ```
 
-更新方式、競合制御、オフライン時の扱い、許容遅延は検討中です。
+マーカーは完全オフライン対応とし、事前取得した試合、選手、競技設定と確定状態を端末へ保持します。得点等の操作は端末内へ永続保存し、通信復旧後に順序を維持して同期します。ブラウザを閉じても、同じ端末・ブラウザで直前状態から再開できるようにします。具体的なリアルタイム更新方式、オフライン競合制御、許容遅延は基本設計で確定します。
 
 ## 5. 本番配置
 
@@ -90,7 +87,7 @@ sequenceDiagram
 
 - 認証と権限管理
 - 個人情報・パスワードの保護
-- バックアップと復旧
+- バックアップと復旧（紙記録の一括登録と指定時点復旧の高度化は将来導入）
 - 操作履歴・監査ログ
 - 同時アクセス数と性能
 - 障害監視

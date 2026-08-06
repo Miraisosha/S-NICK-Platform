@@ -1,0 +1,417 @@
+version: "1.0-draft"
+role: marker
+document: ../300_Marker.md
+inherited_from: "マーカー機能設計"
+
+modes:
+  normal:
+    description: "登録済みのイベント・試合から開始する"
+  quick:
+    description: "イベントを作成せずマーカー機能だけを利用する"
+    status: "scope_pending"
+
+screens:
+  - id: SCR-MKR-311
+    function: MKR-310
+    name: コート別当日試合一覧
+    access: Write
+  - id: SCR-MKR-321
+    function: MKR-320
+    name: マーカー画面
+    access: Write
+  - id: SCR-MKR-322
+    function: MKR-320
+    name: 選手表示設定
+    access: Write
+  - id: SCR-MKR-323
+    function: MKR-360
+    name: ゲーム詳細
+    access: ReadOnly
+  - id: SCR-MKR-324
+    function: MKR-340
+    name: その他判定
+    access: Write
+  - id: SCR-MKR-325
+    function: MKR-350
+    name: タイマー
+    access: Write
+  - id: SCR-MKR-326
+    function: MKR-360
+    name: 試合終了確認
+    access: Write
+
+device_setup:
+  marker_tablets_per_court: 1
+  scoreboards_per_court:
+    min: 1
+    max: 2
+    access: ReadOnly
+  launch:
+    methods:
+      - one_time_qr
+      - saved_assignment
+      - home_screen_shortcut
+    qr_expiration: pending
+    authentication_required: true
+    qr_grants_role: false
+    pwa_installable: candidate
+  replacement:
+    qr_issued_by_authenticated_operator_or_staff: true
+    server_connection_required: true
+    source_unsynced_events_must_be_zero: true
+    transfer_operation_lock_atomically: true
+    audit_required: true
+  initial_route:
+    default: MKR-310
+    active_match: MKR-320
+    state_codes_source: state-machine.yaml
+    active_match_states:
+      - warmup
+      - preparing
+      - in_progress
+      - interval
+      - injury_time
+      - suspended
+
+responsive_ui:
+  reference_layouts:
+    - portrait
+    - landscape
+  side_mapping_fixed: true
+  score_region:
+    priority: 1
+    entire_region_adds_point: true
+    one_and_two_digits_no_truncation: true
+    three_or_more_digits: shrink_without_wrap
+  marker_board:
+    access: ReadOnly
+    internal_scroll: true
+  landscape:
+    columns:
+      - left_score_and_controls
+      - marker_board
+      - right_score_and_controls
+    judgment_buttons: horizontal_below_each_score
+  portrait:
+    score_regions: side_by_side_top
+    lower_columns:
+      - left_judgment_buttons
+      - marker_board
+      - right_judgment_buttons
+    judgment_buttons: vertical
+  minimums_css_px:
+    touch_target_width: 56
+    touch_target_height: 56
+    control_gap: 8
+    player_name_font: 24
+    judgment_button_font: 20
+    primary_status_font: 18
+    supporting_text_font: 16
+  primary_controls_without_page_scroll: true
+  simplified_layout_breakpoint: pending
+
+localization:
+  release_phase: 3
+  phase_1_2_default: ja
+  initial_locales:
+    - ja
+    - en
+    - ko
+  translation_keys_required_from_phase_1: true
+  translated_label_growth_allowance: 1.3
+  button_label_max_lines: 2
+  locale_preference_scope: pending
+  rtl_support: future_pending
+
+voice_calls:
+  release_phase: 3
+  optional_assistive_feature: true
+  scoring_and_state_must_continue_on_audio_failure: true
+  score_order: server_first
+  calls:
+    - match_introduction
+    - love
+    - all
+    - hand_out
+    - game_ball
+    - match_ball
+    - first_ten_all_win_by_two
+    - yes_let
+    - no_let
+    - stroke
+    - game_result
+    - match_result
+  player_name:
+    localized_spoken_name: true
+    fallback_order:
+      - localized_spoken_name
+      - name_reading
+      - display_name
+      - full_name
+    spoken_on:
+      - match_introduction
+      - player_specific_decision
+      - game_result
+      - match_result
+    pre_match_test: true
+  playback_candidates:
+    - web_speech_api
+    - fixed_audio
+    - pregenerated_cached_audio
+  selected_playback_method: pending
+  user_activation_before_playback: required
+  settings:
+    - enabled
+    - test
+    - speech_rate
+    - locale
+    - replay_last_call
+  default_enabled: pending
+  offline_audio_scope: pending
+  external_speaker_requirements: pending
+
+match_list:
+  schedule_source: latest_published_version
+  draft_changes_visible: false
+  scope: event_day_and_court_usage_range
+  order:
+    primary: published_court_sequence
+    secondary: effective_scheduled_start_at
+  next_match:
+    excludes:
+      - active
+      - finished
+      - forfeited
+      - awarded
+      - cancelled
+    select: first_startable_in_published_order
+  finished_matches:
+    collapsed: false
+    emphasis: low
+    show_result: true
+  realtime_refresh:
+    required: true
+    methods:
+      - websocket
+      - api_polling
+    selected_method: pending
+    polling_seconds: pending
+  offline:
+    keep_last_list: true
+    show_last_updated_at: true
+    start_new_match: false
+  text_overflow:
+    first: wrap
+    fallback: ellipsis
+    full_text_in_detail: true
+
+match_start:
+  server_connection_required: true
+  atomic_with_operation_lock: true
+  idempotent: true
+  previous_unfinished_match:
+    behavior: warn_and_allow_if_no_active_operation_lock
+    flag_for_operator: true
+    audit_required: true
+
+finished_match_resume:
+  normal_finished_state: allowed_with_confirmation
+  restore_last_marker_state: true
+  rollback_unstarted_dependent_match_assignment: true
+  sync_public_and_display_state: true
+  audit_required: true
+  blocked_for_marker_when:
+    - another_match_active_on_same_court
+    - dependent_match_already_started
+  forfeited_awarded_cancelled: operator_confirmation_required
+
+events:
+  - id: EV-MKR-MATCH-SELECT
+    name: 試合選択
+  - id: EV-MKR-WARMUP-START
+    name: ウォームアップ開始
+  - id: EV-MKR-MATCH-START
+    name: 試合開始
+  - id: EV-MKR-POINT-LEFT
+    name: 左選手得点
+  - id: EV-MKR-POINT-RIGHT
+    name: 右選手得点
+  - id: EV-MKR-YES-LET
+    name: YES LET
+  - id: EV-MKR-NO-LET
+    name: NO LET
+  - id: EV-MKR-STROKE
+    name: STROKE
+  - id: EV-MKR-CONDUCT-WARNING
+    name: CONDUCT WARNING
+  - id: EV-MKR-CONDUCT-STROKE
+    name: CONDUCT STROKE
+  - id: EV-MKR-CONDUCT-GAME
+    name: CONDUCT GAME
+  - id: EV-MKR-CONDUCT-MATCH
+    name: CONDUCT MATCH
+  - id: EV-MKR-INJURY-START
+    name: INJURY TIME開始
+  - id: EV-MKR-FORFEIT-MATCH
+    name: FORFEIT MATCH
+  - id: EV-MKR-GAME-END
+    name: ゲーム終了
+  - id: EV-MKR-MATCH-END
+    name: 試合終了
+  - id: EV-MKR-MATCH-RESUME-AFTER-FINISH
+    name: 誤終了後の試合再開
+  - id: EV-MKR-UNDO
+    name: 直前操作取消
+
+scoring:
+  point_input: "得点表示領域をタップ"
+  server_scored:
+    serving_player: keep
+    service_box: toggle
+    service_box_selectable: false
+  receiver_scored:
+    serving_player: scorer
+    service_box: right
+    service_box_selectable: true
+  yes_let:
+    points: unchanged
+    serving_player: keep
+    service_box: keep
+  no_let:
+    point_to: opponent_of_appellant
+    service_rule: normal_point
+  stroke:
+    point_to: striker
+    service_rule: normal_point
+
+marker_board:
+  access: ReadOnly
+  columns:
+    - left_point
+    - left_service_box
+    - right_point
+    - right_service_box
+  service_boxes:
+    - L
+    - R
+  appeal_row_span: 2
+  current_game_only: true
+
+timers:
+  warmup_seconds:
+    candidates: [90, 120]
+  preparation_seconds:
+    candidate: 60
+  game_interval_seconds:
+    candidate: 90
+  calculation: "end_at - current_time"
+  persistence_fields:
+    - timer_type
+    - status
+    - duration
+    - started_at
+    - end_at
+    - paused_remaining
+    - updated_at
+  browser_closed_while_running: elapsed_wall_time
+  browser_closed_while_paused: keep_remaining
+  expired_on_resume: show_zero_and_unacknowledged_completion
+  chained_transition_while_browser_closed: pending
+  device_clock_change_handling: pending
+
+undo:
+  count: 1
+  confirmation: false
+  restore:
+    - points
+    - serving_player
+    - service_box
+    - marker_board
+    - games_won
+    - match_state
+
+persistence:
+  source_of_truth: server
+  offline_support: complete
+  release_phase: 1
+  preload_table_set: true
+  local_queue: IndexedDB
+  local_snapshot: IndexedDB
+  autosave: per_event
+  event_id_required: true
+  state_version_required: true
+  recover_after:
+    - browser_close
+    - browser_refresh
+    - browser_back
+    - orientation_change
+  sync_status:
+    - synced
+    - syncing
+    - offline
+    - error
+  blocking_error_dialog_during_offline: false
+  resume_same_browser_after_close: true
+
+operation_lock:
+  one_controller_per_match: true
+  other_device_modes:
+    - read_only
+    - takeover_with_confirmation
+
+business_rules:
+  - id: BR-MKR-001
+    rule: "サーバーが得点した場合はサーブ権を維持しサービスボックスを反転する"
+  - id: BR-MKR-002
+    rule: "ハンドアウト直後は新サーバーのサービスボックスをRightとし、直後のみ変更可能とする"
+  - id: BR-MKR-003
+    rule: "判定イベントと関連する得点・サーブ状態は同一操作として保存する"
+  - id: BR-MKR-004
+    rule: "UNDOは直前イベントとその派生状態を完全に取り消す"
+  - id: BR-MKR-005
+    rule: "重要な終了・試合授与操作は対象選手と結果を表示して確認する"
+  - id: BR-MKR-006
+    rule: "確定操作を大型表示とOBSへ同期する"
+  - id: BR-MKR-007
+    rule: "同一イベントIDはサーバー側で一度だけ処理する"
+  - id: BR-MKR-008
+    rule: "通信断中も通常のマーカー操作を停止せず、未同期状態は操作を妨げない表示で明示する"
+  - id: BR-MKR-009
+    rule: "ブラウザ終了後も同じ端末・ブラウザで直前状態から再開できる"
+  - id: BR-MKR-010
+    rule: "作動中タイマーは終了予定日時と現在日時の差からブラウザ終了中の経過を復元する"
+  - id: BR-MKR-011
+    rule: "担当コートに進行中の試合がある場合は起動時にマーカー画面へ自動復帰する"
+  - id: BR-MKR-012
+    rule: "端末回転後も左選手と右選手の位置関係および操作内容を維持する"
+  - id: BR-MKR-013
+    rule: "主要操作はページ全体のスクロールなしで使用できるようにする"
+  - id: BR-MKR-014
+    rule: "多言語対応はフェーズ3とし、フェーズ1から翻訳可能な画面構造を維持する"
+  - id: BR-MKR-015
+    rule: "310は公開済みスケジュールの最新版だけを表示し、下書き変更を公開前に表示しない"
+  - id: BR-MKR-016
+    rule: "新しい試合の開始と操作端末ロックをオンラインで一度だけ確定する"
+  - id: BR-MKR-017
+    rule: "オフライン操作はオンラインで開始済みの試合を終了まで継続する場合に限る"
+  - id: BR-MKR-018
+    rule: "前の試合が未終了でも有効な操作ロックがなければ警告後に後続試合を開始できる"
+  - id: BR-MKR-019
+    rule: "通常終了の誤操作は条件を満たす場合に確認付きで直前状態から再開できる"
+  - id: BR-MKR-020
+    rule: "音声コールはフェーズ3の補助機能とし、音声失敗時も得点・状態処理を継続する"
+
+pending:
+  - "公式ルール版と大会別ルール差分"
+  - "Conduct Gameの確定スコア表現"
+  - "Injury Timeの正式区分"
+  - "オフライン中に同じ試合を複数端末で更新した場合の競合解決"
+  - "試合終了後のUNDO権限"
+  - "マーカー起動用QRコードと代替端末用QRコードの有効時間"
+  - "ブラウザ不在中に連続タイマーを自動遷移させる範囲"
+  - "端末時計変更の検出基準とタイマー補正方法"
+  - "対象端末の最小画面サイズと簡略表示の境界値"
+  - "多言語設定の利用者単位または端末単位の保存範囲"
+  - "右から左へ記述する言語への将来対応範囲"
+  - "音声合成と固定・事前生成音声の採用範囲および初期ON/OFF"
+  - "オフライン音声の事前保存範囲と対応端末・外部スピーカー要件"

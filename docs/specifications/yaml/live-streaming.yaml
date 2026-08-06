@@ -1,0 +1,179 @@
+version: "1.0-draft"
+domain: live_streaming
+document: ../../04_live-streaming.md
+inherited_from: "YouTubeライブ配信設定"
+
+snick_stream_management:
+  screen_id: SCR-OPR-281
+  status: phase_3
+  release_phase: 3
+
+initial_scope:
+  simultaneous_courts: 2
+  platform: YouTube Live
+  encoder: OBS
+  local_recording: true
+
+court_pipeline:
+  - GoPro
+  - HDMI
+  - wireless_hdmi_transmitter
+  - wireless_hdmi_receiver
+  - capture_device
+  - OBS
+  - YouTube_Live
+
+per_court_resources:
+  - youtube_broadcast
+  - public_watch_url
+  - stream_key
+  - obs_profile
+  - obs_scene_collection
+  - overlay_url
+
+secret_policy:
+  stream_key:
+    classification: secret
+    store_in_git: false
+    store_in_public_snick_data: false
+    rotate_on_leak: true
+
+obs_scenes:
+  - starting_soon
+  - match
+  - interval
+  - coming_next
+  - ending
+  - incident
+
+overlay_fields:
+  required_during_match:
+    - player_names
+    - current_game_score
+    - games_won
+    - player_colors
+  conditional:
+    - service
+    - court_and_match
+    - title_logo
+    - sponsor_roll
+    - match_state
+    - timer
+    - next_match
+    - judgment_dialog
+    - warmup_interval_bottom_status
+  visual_rules:
+    outside_background: transparent
+    distinguish_score_from_games_won: true
+    small_helper_labels: false
+    information_priority:
+      - current_game_score
+      - player_names
+      - games_won
+    games_won_size: secondary
+    color_only_identification: false
+    player_color_usage:
+      - player_background
+      - player_band
+      - accent
+
+overlay_layout_catalog:
+  configured_at: event_settings
+  target_preset_count: 10
+  exact_count_status: pending_ui_design
+  selection_scope: event
+  selected_count_per_event: 1
+  preview:
+    thumbnail: true
+    sample_with_event_data: true
+  template_variants:
+    - match
+    - warmup_interval
+    - judgment
+  variation_dimensions:
+    - band_shape
+    - screen_position
+    - typography
+    - border_and_accent
+    - player_color_application
+  required_fields_cannot_be_hidden: true
+  custom_layout_editor: future_extension
+  samples:
+    - id: OBS-LYT-01
+      name: simple_flat_score_band
+      status: reference_sample
+      reference_image: ../images/marker/obs-overlay-sample-01-v4.png
+      small_helper_labels: hidden
+      decoration: minimal_flat
+
+overlay_dialog:
+  presentation: transparent_browser_source_overlay
+  obs_scene_switch_required: false
+  judgment:
+    values:
+      - YES_LET
+      - NO_LET
+      - STROKE
+    label_style: fixed_uppercase_english
+    display_seconds: 3
+    replace_with_latest: true
+    close_on_undo: true
+    replay_expired_after_reconnect: false
+    event_id_required: true
+    occurred_at_required: true
+    expires_at_required: true
+
+warmup_interval_layout:
+  configured_at: event_settings
+  default: sponsor_primary_with_bottom_status
+  invariant_across_presets: sponsor_primary_with_bottom_status
+  active_match_states:
+    - warmup
+    - preparing
+    - interval
+  sponsor:
+    presentation: primary
+    fields:
+      - sponsor_logo
+      - sponsor_comment
+  bottom_status:
+    fields:
+      - state_label
+      - remaining_time
+      - next_game_number_when_interval
+    paused_label: PAUSED
+    restore_from_server_end_at: true
+    close_when:
+      - remaining_time_zero
+      - match_state_in_progress
+
+stream_states:
+  - scheduled
+  - starting_soon
+  - live
+  - ended
+  - archived
+  - cancelled
+
+quality_candidate:
+  resolution: "1280x720"
+  frame_rate: 60
+  video_bitrate_mbps_per_court: 6
+  rate_control: CBR
+  keyframe_interval_seconds: 2
+  status: pending_venue_test
+
+network:
+  obs_connection: wired_lan
+  marker_and_display_connection: wifi
+  initial_router_count: 1
+  mobile_fallback: dual_sim_failover
+  bonding: future_option
+
+pending:
+  - YouTubeチャンネルの所有形態と権限
+  - 1台のPCへ集約するかコート別PCとするか
+  - 配信枠とストリームキーの再利用方針
+  - 配信品質と会場試験の合格基準
+  - YouTube APIによる自動化範囲
+  - 機材製品と予備機材
