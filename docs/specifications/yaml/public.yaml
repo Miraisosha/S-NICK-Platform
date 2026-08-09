@@ -92,7 +92,7 @@ business_rules:
   - id: BR-PUB-003
     rule: 状態ラベルを開催期間・申込期間・手動設定から算出する
   - id: BR-PUB-004
-    rule: 共有用S-NICK公開URLを維持する
+    rule: 共有用Squash Platform公開URLを維持する
   - id: BR-PUB-005
     rule: 終了後は同じURLを結果・アーカイブへ切り替える
 

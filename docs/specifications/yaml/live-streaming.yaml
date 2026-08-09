@@ -127,7 +127,7 @@ warmup_interval_layout:
   configured_at: event_settings
   default: sponsor_primary_with_bottom_status
   invariant_across_presets: sponsor_primary_with_bottom_status
-  active_match_states:
+  applicable_match_states:
     - warmup
     - preparing
     - interval

@@ -28,21 +28,25 @@ match_state_machine:
     - from: warmup
       event: warmup_timeout
       to: preparing
+      automatic_when_browser_absent: false
     - from: preparing
       event: start_match
       to: in_progress
+      automatic: false
     - from: in_progress
       event: game_finished_match_continues
       to: interval
     - from: interval
       event: start_next_game
       to: in_progress
+      automatic: false
     - from: in_progress
       event: start_injury_time
       to: injury_time
     - from: injury_time
       event: resume_match
       to: in_progress
+      automatic: false
     - from: in_progress
       event: suspend_match
       to: suspended
@@ -65,11 +69,29 @@ match_state_machine:
     - from: finished
       event: resume_accidental_finish
       to: in_progress
-      conditions:
-        - no_other_active_match_on_same_court
-        - no_dependent_match_started
       confirmation: required
+      warn_when:
+        - another_nonterminal_match_on_same_court
+        - dependent_match_started
+      automatic_player_replacement_in_started_match: false
       audit: required
+
+result_correction_session:
+  allowed_from_match_states:
+    - finished
+    - forfeited
+    - awarded
+    - cancelled
+  official_match_state_during_entry: keep_current_terminal_state
+  start_event: reset_result_for_reentry
+  edit_scope: all_marker_events
+  partial_event_edit: false
+  entry_storage: draft
+  confirm_event: confirm_corrected_match_result
+  state_after_confirm: finished
+  cancel_event: cancel_result_correction
+  state_after_cancel: keep_previous_terminal_state
+  previous_record: audit_only
 
 game_state_machine:
   initial: not_started
@@ -88,6 +110,13 @@ game_state_machine:
     - from: in_progress
       event: scoring_rule_satisfied
       to: finished
+      conditions:
+        - game_end_point_is_1_to_100
+    - from: in_progress
+      event: manual_game_end
+      to: finished
+      conditions:
+        - game_end_point_is_0
     - from: in_progress
       event: conduct_game
       to: awarded
@@ -119,11 +148,12 @@ timer_state_machine:
 undo_policy:
   target: latest_event_only
   recompute_state: true
-  terminal_state_undo: "permission_pending"
+  terminal_state_undo: allowed_for_assigned_marker_and_event_operator
 
 result_correction:
   normal_authorized_roles:
     - event_owner
     - event_operations_manager
+    - assigned_marker
   platform_admin: maintenance_only
   audit_required: true

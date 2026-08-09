@@ -1,5 +1,6 @@
 version: "1.0-draft"
-project: "S-NICK Platform"
+project: "Squash Platform"
+project_name_ja: "スカッシュ　プラットフォーム"
 status: "review"
 source_of_truth: "docs/specifications"
 
@@ -59,3 +60,11 @@ release_phases:
       - "YouTube配信一覧・設定"
       - "ランキング公開"
       - "イベントライフサイクル拡張"
+  phase_4:
+    name: "マニュアル・利用者サポート"
+    scope:
+      - "操作マニュアル作成"
+    candidates:
+      - "問い合わせフォーム"
+      - "QA検索"
+    detail_status: "今後検討"

@@ -1,13 +1,13 @@
-# S-NICK Platform Requirements v1.0
+# Squash Platform Requirements v1.0
 
 ## 位置づけ
 
-このディレクトリを、S-NICK Platformの要件・設計に関する正本（Single Source of Truth）とする。
+このディレクトリを、Squash Platform（日本語表記：スカッシュ　プラットフォーム）の要件・設計に関する正本（Single Source of Truth）とする。
 現時点で未確定の内容は推測で確定せず、`検討中` と明記する。
 
 ## 既存設計資料との関係
 
-引き継ぎ元の「S-NICK Platform設計資料を整理」で作成された次の資料を、プロジェクト全体の方針・基本設計として参照する。
+旧称「S-NICK Platform」で作成された次の資料を、プロジェクト全体の方針・基本設計として参照する。
 
 - [プロジェクト概要](../01_project-overview.md)
 - [システム構成](../02_system-architecture.md)
@@ -39,7 +39,11 @@
 
 | ファイル | 内容 |
 |---|---|
-| [FunctionalIndex.md](FunctionalIndex.md) | 利用者別機能とフェーズ1～3のリリース範囲 |
+| [FunctionalIndex.md](FunctionalIndex.md) | 利用者別機能とフェーズ1～4のリリース範囲 |
+| [ScreenFlow.md](ScreenFlow.md) | 利用者別の入口と主要な画面遷移図 |
+| [DataModel.md](DataModel.md) | 大会・試合・マーカー・固定QRコードの概念ER設計 |
+| [ClassDesign.md](ClassDesign.md) | 大会運営・スケジュール・試合進行の概念クラス図と責務分担 |
+| [UiDesignGuide.md](UiDesignGuide.md) | Squash Platform共通の配色、文字、ボタン、角丸、余白、キャラクター使用方針 |
 | [000_SystemOverview.md](000_SystemOverview.md) | プロジェクトとシステムの概要 |
 | [010_SystemArchitecture.md](010_SystemArchitecture.md) | システム構成・技術構成 |
 | [020_UserRoles.md](020_UserRoles.md) | 利用者と権限 |

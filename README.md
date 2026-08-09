@@ -1,6 +1,8 @@
-# S-NICK Platform
+# Squash Platform
 
-S-NICK Platform は、スカッシュ大会の企画、エントリー受付、試合運営、スコア管理、ライブ配信、結果公開までを一元的に支援する統合プラットフォームです。
+**日本語表記：スカッシュ　プラットフォーム**
+
+Squash Platformは、スカッシュ大会の企画、エントリー受付、試合運営、スコア管理、ライブ配信、結果公開までを一元的に支援する統合プラットフォームです。
 
 現在は仕様検討段階です。フェーズ1では、運営者による選手の手動登録、イベント・ドロー・スケジュール、マーカー、リアルタイム得点表示、結果公開までの大会運営中核機能を目指します。エントリー受付の自動化等はフェーズ2、選手自身のWeb申込、決済、LINE、YouTube配信設定、ランキング公開はフェーズ3とします。
 
@@ -42,6 +44,9 @@ CakePHP、Vue.js、Bootstrap、MySQLの詳細バージョンと開発・デプ�
 ## ドキュメント
 
 - [Requirements v1.0（機能・画面・イベント・業務ルール）](docs/specifications/README.md)
+- [画面遷移図](docs/specifications/ScreenFlow.md)
+- [概念ER設計](docs/specifications/DataModel.md)
+- [概念クラス設計](docs/specifications/ClassDesign.md)
 - [プロジェクト概要](docs/01_project-overview.md)
 - [システム構成](docs/02_system-architecture.md)
 - [サービス・業務領域計画](docs/03_service-domain-plan.md)
