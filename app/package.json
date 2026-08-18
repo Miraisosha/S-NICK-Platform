@@ -1,0 +1,21 @@
+{
+  "name": "snick-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Squash Platform frontend assets",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build"
+  },
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "^5.3.8",
+    "vue": "^3.5.41"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "^8.2.1"
+  }
+}

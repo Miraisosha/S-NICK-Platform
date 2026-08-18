@@ -1,0 +1,59 @@
+name: snick-platform
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.5}
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      APP_ENV: development
+      APP_DEFAULT_LOCALE: ja_JP
+      APP_DEFAULT_TIMEZONE: Asia/Tokyo
+      APP_FULL_BASE_URL: http://localhost:${APP_PORT:-8080}
+      DEBUG: "true"
+      DATABASE_URL: mysql://${MYSQL_USER:-snick}:${MYSQL_PASSWORD:-snick_dev_password}@db:3306/${MYSQL_DATABASE:-snick_platform}?encoding=utf8mb4&timezone=Asia%2FTokyo
+      TZ: Asia/Tokyo
+    volumes:
+      - ./app:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:${MYSQL_VERSION:-8.4}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-snick_platform}
+      MYSQL_USER: ${MYSQL_USER:-snick}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-snick_dev_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-snick_root_dev_password}
+      TZ: Asia/Tokyo
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  node:
+    image: node:${NODE_VERSION:-24}-bookworm-slim
+    profiles: ["tools"]
+    working_dir: /var/www/html
+    environment:
+      TZ: Asia/Tokyo
+    volumes:
+      - ./app:/var/www/html
+    command: ["sleep", "infinity"]
+
+volumes:
+  mysql-data:

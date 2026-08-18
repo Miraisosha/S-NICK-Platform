@@ -6,14 +6,14 @@
 |---|---|
 | 本番ホスティング | お名前.com レンタルサーバー RSプラン |
 | サーバー接続 | SSH（接続確認済み） |
-| バックエンド | PHP 8.5 / CakePHP |
-| フロントエンド | Vue.js / Bootstrap |
+| バックエンド | PHP 8.5 / CakePHP 5.4 |
+| フロントエンド | Vue.js 3.5 / Bootstrap 5.3 / Vite 8 |
 | データベース | MySQL |
 | 地図・位置情報 | Google Maps Platform Map Tiles API／Geocoding APIまたはPlaces API／OpenLayers |
 | ソース管理 | GitHub |
 | リポジトリ | `Miraisosha/S-NICK-Platform` |
 
-CakePHP、Vue.js、Bootstrap、MySQL、Node.jsなどの詳細バージョンは検討中です。
+ローカル開発ではNode.js 24、MySQL 8.4 LTSを使用します。本番MySQLのバージョンは接続試験後に確定します。
 
 Google Maps PlatformのMap Tiles APIをGoogle背景地図として使用し、画面の描画・操作にはOpenLayersを使用します。住所検索・座標取得にはGeocoding APIまたはPlaces APIを使用し、結果を同じGoogle背景地図上へ表示します。Googleロゴとデータ帰属表示、キャッシュ制限、APIキー制限等のポリシーを遵守し、実装前に料金と最新の利用条件を再確認します。
 
@@ -83,7 +83,7 @@ sequenceDiagram
 - 本番URLは `platform.s-nick.com` を使用します。
 - SSH接続は、既存のS-NICKイベント保険加入フォームで確認済みの方法を参考にします。
 - SSH鍵、ユーザー名、パス、データベース接続情報などの秘密情報はリポジトリへ保存しません。
-- Vue.jsのビルド場所、CakePHPとの統合方法、GitHubから本番へのデプロイ方法は検討中です。
+- Vue.jsはGitHub Actionsでビルドし、PHP依存関係とともにSSH・rsyncでRSプランへ同期します。詳細は[GitHub Actionsによる本番デプロイ](08_deployment.md)を参照します。
 - 開発・検証・本番環境の分離方法は検討中です。
 
 ## 6. 非機能要件として検討する事項
