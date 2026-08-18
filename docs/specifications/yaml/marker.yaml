@@ -1,0 +1,849 @@
+version: "1.0-draft"
+role: marker
+document: ../300_Marker.md
+inherited_from: "マーカー機能設計"
+
+modes:
+  normal:
+    description: "登録済みのイベント・試合から開始する"
+  quick:
+    description: "イベントを作成せずログイン後のクイック起動ボタンから直ちにマーカー機能を利用する"
+    release_phase: 1
+    feature_parity_with_normal_mode: true
+    parity_applies_per_feature_release_phase: true
+    launch:
+      source: authenticated_user_top_or_menu
+      action: quick_launch_button
+      prelaunch_form: false
+      confirmation: false
+      creates_quick_match: true
+      initial_screen: SCR-MKR-321
+      bypasses_screen: SCR-MKR-311
+    omitted_preconfiguration:
+      - event
+      - category
+      - draw
+      - schedule
+    required_setup: []
+    blank_allowed:
+      - event_name
+      - category_name
+      - round_name
+      - court_number
+      - left_player_name
+      - right_player_name
+    defaults:
+      maximum_games: 1
+      game_end_point: 11
+      required_lead_points: 2
+      left_player_color: blue
+      right_player_color: red
+    settings_from_marker_screen:
+      - event_name
+      - category_name
+      - round_name
+      - court_number
+      - left_player_name
+      - right_player_name
+      - left_player_color
+      - right_player_color
+      - maximum_games
+      - game_end_point
+      - required_lead_points
+      - warmup
+      - preparation
+      - game_interval
+    scoring_rule_change_after_score_entry: pending
+    configurable_timers:
+      - warmup
+      - preparation
+      - game_interval
+    full_marker_functions: true
+    offline_support: true
+    browser_resume: true
+    timer_restore: true
+    operation_lock: true
+    audit_history: true
+    realtime_sync: true
+    result_and_history_persistence: true
+    phased_features:
+      large_display: same_release_phase_as_normal_mode
+      obs_overlay: same_release_phase_as_normal_mode
+      multilingual: same_release_phase_as_normal_mode
+      voice_call: same_release_phase_as_normal_mode
+
+category_match_rules:
+  game_end_point:
+    input: numeric_text
+    min: 0
+    max: 100
+    zero_means: manual_game_end_mode
+  required_lead_points:
+    choices: [1, 2]
+    behavior_when_game_end_point_zero: disabled
+  manual_game_end_mode:
+    intended_use:
+      - group_stage
+    game_finish: manual
+    match_decision:
+      maximum_games_1: higher_points_in_single_game
+      maximum_games_3: first_to_2_games
+      maximum_games_5: first_to_3_games
+    games_won_decides_winner:
+      maximum_games_1: false
+      maximum_games_3: true
+      maximum_games_5: true
+    early_finish:
+      maximum_games_1: after_game_1
+      maximum_games_3: after_game_2_or_3
+      maximum_games_5: after_game_3_4_or_5
+    tied_total_points:
+      applies_when_maximum_games: 1
+      result: no_win_loss
+      winner: null
+      loser: null
+      extra_points: false
+      tiebreak_game: false
+      match_state: finished
+      allow_group_stage_to_continue: true
+      preserve_player_total_points_for_future_standings: true
+  scoring_method:
+    fixed: point_a_rally
+    selectable: false
+    server_scores_rally: true
+    receiver_scores_rally: true
+    hand_in_hand_out: unsupported
+    par_none_option: false
+    applies_to_manual_game_end_mode: true
+  maximum_games:
+    phase_1_ui_choices: [1, 3, 5]
+    storage: positive_integer
+    database_odd_only_constraint: false
+    upper_limit: pending
+    phase_1_progression: best_of
+    games_required_to_win_in_best_of: "(maximum_games + 1) / 2"
+  match_progression:
+    phase_1_supported:
+      - best_of
+    extensible_values:
+      - best_of
+      - fixed_game_count
+    best_of:
+      finish_when_majority_reached: true
+      draw_possible: false
+    fixed_game_count:
+      release_phase: pending
+      even_game_count_allowed: true
+      continue_after_majority_reached: true
+      finish_after_configured_games: true
+      draw_possible: true
+  result_model:
+    winner_required: false
+    loser_required: false
+    result_types:
+      - left_win
+      - right_win
+      - draw
+      - forfeited
+      - awarded
+      - cancelled
+    draw_match_state: finished
+  group_stage_metrics:
+    retain_all_game_scores: true
+    recalculable:
+      - matches_played
+      - wins
+      - losses
+      - draws
+      - games_for
+      - games_against
+      - game_difference
+      - points_for
+      - points_against
+      - point_difference
+    ranking_rule_priority: pending_per_event_or_category
+
+screens:
+  - id: SCR-MKR-311
+    function: MKR-310
+    name: コート別当日試合一覧
+    access: Write
+  - id: SCR-MKR-321
+    function: MKR-320
+    name: マーカー画面
+    access: Write
+  - id: SCR-MKR-322
+    function: MKR-320
+    name: クイック設定・選手表示設定
+    access: Write
+  - id: SCR-MKR-323
+    function: MKR-360
+    name: ゲーム詳細
+    access: ReadOnly
+  - id: SCR-MKR-324
+    function: MKR-340
+    name: その他判定
+    access: Write
+  - id: SCR-MKR-325
+    function: MKR-350
+    name: タイマー
+    access: Write
+  - id: SCR-MKR-326
+    function: MKR-360
+    name: 試合終了確認
+    access: Write
+
+device_setup:
+  marker_tablets_per_court: 1
+  identity:
+    asset_code:
+      format_example: TAB-0001
+      globally_unique: true
+      fixed_across_events_and_courts: true
+      physical_label_required: true
+    browser_installation_id:
+      generated_per_browser_profile: true
+      linked_to_asset_code: true
+      replace_after_browser_data_clear: true
+      authorized_relink_required: true
+    prohibited_primary_identifiers:
+      - mac_address
+      - ip_address
+      - user_agent
+    preregister_primary_and_spare_devices: true
+  scoreboards_per_court:
+    min: 1
+    max: 2
+    access: ReadOnly
+  scoreboard_launch:
+    qr_scope:
+      - event
+      - court
+    fixed_per_event_court: true
+    created_when: event_court_assigned
+    manual_issue_action: false
+    separate_from_marker_qr: true
+    reusable_on_multiple_devices_same_court: true
+    valid_until: event.end_at
+    authentication_required: false
+    access: ReadOnly
+    connection_code_alternative: true
+  launch:
+    methods:
+      - reusable_event_court_qr
+      - event_court_connection_code
+      - saved_assignment
+      - home_screen_shortcut
+    qr_scope:
+      - event
+      - court
+    reject_different_event: true
+    reject_different_court: true
+    one_valid_qr_per_event_court: true
+    reusable: true
+    valid_from: issued_at
+    valid_until: event.end_at
+    expiration_reference: current_event_end_at
+    follows_event_end_at_change: true
+    automatic_expiration_at_event_end: true
+    does_not_expire_on:
+      - qr_read
+      - device_assignment
+      - match_finished
+      - browser_closed
+      - daily_court_usage_end
+    exceptional_revocation_before_event_end:
+      allowed_for:
+        - lost
+        - leaked
+        - incorrectly_posted
+      replacement_invalidates_previous_code: true
+    copy_and_print_supported: true
+    intended_posting_location: court_marker_table
+    connection_code_printed_with_qr: true
+    contains_credentials: false
+    authentication_required: true
+    qr_grants_role: false
+    pwa_installable: candidate
+  replacement:
+    dedicated_replacement_qr: false
+    use_posted_event_court_qr_or_connection_code: true
+    starts_read_only_when_lock_exists: true
+    takeover_confirmation_by_authorized_operator_or_staff: true
+    server_connection_required: true
+    normal_takeover_requires_no_source_unsynced_events: true
+    forced_takeover_when_source_unreachable: true
+    forced_takeover_requires_warning_and_reason: true
+    forced_takeover_allowed_for:
+      - assigned_marker
+      - scoped_staff
+      - event_manager
+      - event_owner
+    replacement_uses_latest_server_state: true
+    old_device_becomes_read_only: true
+    old_device_late_events: separate_conflict_branch
+    transfer_operation_lock_atomically: true
+    audit_required: true
+    target_elapsed_seconds:
+      min: 20
+      max: 30
+  initial_route:
+    default: MKR-310
+    resumable_match: MKR-320
+    state_codes_source: state-machine.yaml
+    resumable_match_states:
+      - warmup
+      - preparing
+      - in_progress
+      - interval
+      - injury_time
+      - suspended
+
+responsive_ui:
+  reference_layouts:
+    - portrait
+    - landscape
+  side_mapping_fixed: true
+  score_region:
+    priority: 1
+    entire_region_adds_point: true
+    one_and_two_digits_no_truncation: true
+    three_or_more_digits: shrink_without_wrap
+  marker_board:
+    access: ReadOnly
+    internal_scroll: true
+  landscape:
+    columns:
+      - left_score_and_controls
+      - marker_board
+      - right_score_and_controls
+    judgment_buttons: horizontal_below_each_score
+  portrait:
+    score_regions: side_by_side_top
+    lower_columns:
+      - left_judgment_buttons
+      - marker_board
+      - right_judgment_buttons
+    judgment_buttons: vertical
+  preferred_sizes_css_px:
+    touch_target_width: 56
+    touch_target_height: 56
+    control_gap: 8
+    player_name_font: 24
+    judgment_button_font: 20
+    primary_status_font: 18
+    supporting_text_font: 16
+  primary_controls_without_page_scroll: true
+  minimum_viewport_size: none
+  block_unsupported_small_viewport: false
+  simplified_layout:
+    enabled: false
+    breakpoint: none
+  small_screen:
+    behavior: uniformly_scale_full_ui_to_fit
+    preserve_all_functions: true
+    hide_controls: false
+    allow_sizes_below_preferred: true
+    allow_control_label_wrap: true
+    allow_control_label_font_reduction: true
+    truncate_control_labels: false
+    variable_text_overflow: use_standard_wrap_ellipsis_and_detail
+
+localization:
+  release_phase: 3
+  phase_1_2_default: ja
+  initial_locales:
+    - ja
+    - en
+    - ko
+  translation_keys_required_from_phase_1: true
+  translated_label_growth_allowance: 1.3
+  button_label_max_lines: 2
+  locale_preference:
+    default_scope: event
+    override_scope: device_event
+    user_account_scope: false
+    first_launch: use_event_default
+    restore_on_same_device_and_event: true
+    reset_option: use_event_default
+    event_default_change:
+      device_without_override: follow_new_default
+      device_with_override: keep_override
+    quick_mode_without_event:
+      default: ja
+      override_scope: device_quick_match
+    offline: use_saved_device_locale
+  text_direction: ltr
+  rtl_support: false
+  mirror_layout_for_language: false
+
+voice_calls:
+  release_phase: 3
+  optional_assistive_feature: true
+  scoring_and_state_must_continue_on_audio_failure: true
+  score_order: server_first
+  calls:
+    - match_introduction
+    - love
+    - all
+    - hand_out
+    - game_ball
+    - match_ball
+    - first_ten_all_win_by_two
+    - yes_let
+    - no_let
+    - stroke
+    - game_result
+    - match_result
+  player_name:
+    localized_spoken_name: true
+    fallback_order:
+      - localized_spoken_name
+      - name_reading
+      - display_name
+      - full_name
+    spoken_on:
+      - match_introduction
+      - player_specific_decision
+      - game_result
+      - match_result
+    pre_match_test: true
+  playback_method: server_hosted_fixed_audio
+  browser_speech_synthesis: false
+  standard_voice_variants: 1
+  audio_asset_source: server
+  player_name_audio:
+    generated_server_side_before_match: true
+    regenerated_after_spoken_name_change: true
+    client_side_synthesis: false
+    unavailable_behavior: skip_name_and_continue
+  user_activation_before_playback: required
+  settings:
+    - enabled
+    - test
+    - locale
+    - replay_last_call
+  speech_rate: fixed
+  default_enabled: false
+  online_connection_required: true
+  offline_audio:
+    supported: false
+    preload_to_persistent_storage: false
+    play_cached_audio: false
+    queue_calls: false
+    replay_missed_calls_after_reconnect: false
+    behavior: skip_audio_and_continue_match_processing
+  external_speaker_requirements: pending
+
+match_list:
+  schedule_source: latest_published_version
+  draft_changes_visible: false
+  scope: event_day_and_court_usage_range
+  order:
+    primary: published_court_sequence
+    secondary: effective_scheduled_start_at
+  next_match:
+    excludes:
+      - warmup
+      - preparing
+      - in_progress
+      - interval
+      - injury_time
+      - suspended
+      - finished
+      - forfeited
+      - awarded
+      - cancelled
+    select: first_startable_in_published_order
+  finished_matches:
+    collapsed: false
+    emphasis: low
+    show_result: true
+  realtime_refresh:
+    required: true
+    primary_method: websocket
+    fallback_method: api_polling
+    write_method: https_json_api
+    websocket_role: saved_state_notification
+    websocket_message_format: json
+    production_transport: wss
+    notification_fields:
+      - event_type
+      - target_id
+      - state_version
+      - occurred_at
+    automatic_fallback: true
+    websocket_reconnect: automatic
+    fetch_latest_state_before_resubscribe: true
+    duplicate_detection:
+      - event_id
+      - state_version
+    polling_seconds:
+      configurable: true
+      initial_value: pending_performance_and_venue_network_test
+  offline:
+    keep_last_list: true
+    show_last_updated_at: true
+    start_new_match: false
+  text_overflow:
+    first: wrap
+    fallback: ellipsis
+    full_text_in_detail: true
+
+match_start:
+  server_connection_required: true
+  atomic_with_operation_lock: true
+  idempotent: true
+  previous_unfinished_match:
+    behavior: warn_and_allow_if_no_active_operation_lock
+    flag_for_operator: true
+    audit_required: true
+
+finished_match_resume:
+  normal_finished_state: allowed_with_confirmation
+  restore_last_marker_state: true
+  rollback_unstarted_dependent_match_assignment: true
+  sync_public_and_display_state: true
+  audit_required: true
+  marker_allowed_when_other_match_or_dependent_match_started: true
+  warn_when:
+    - another_nonterminal_match_on_same_court
+    - dependent_match_already_started
+  automatic_player_replacement_in_started_match: false
+  forfeited_awarded_cancelled: marker_or_operator_reset_and_reenter
+
+events:
+  - id: EV-MKR-MATCH-SELECT
+    name: 試合選択
+  - id: EV-MKR-WARMUP-START
+    name: ウォームアップ開始
+  - id: EV-MKR-MATCH-START
+    name: 試合開始
+  - id: EV-MKR-POINT-LEFT
+    name: 左選手得点
+  - id: EV-MKR-POINT-RIGHT
+    name: 右選手得点
+  - id: EV-MKR-YES-LET
+    name: YES LET
+  - id: EV-MKR-NO-LET
+    name: NO LET
+  - id: EV-MKR-STROKE
+    name: STROKE
+  - id: EV-MKR-CONDUCT-WARNING
+    name: CONDUCT WARNING
+  - id: EV-MKR-CONDUCT-STROKE
+    name: CONDUCT STROKE
+  - id: EV-MKR-CONDUCT-GAME
+    name: CONDUCT GAME
+  - id: EV-MKR-CONDUCT-MATCH
+    name: CONDUCT MATCH
+  - id: EV-MKR-INJURY-START
+    name: INJURY TIME開始
+  - id: EV-MKR-FORFEIT-MATCH
+    name: FORFEIT MATCH
+  - id: EV-MKR-GAME-END
+    name: ゲーム終了
+  - id: EV-MKR-MATCH-END
+    name: 試合終了
+  - id: EV-MKR-MATCH-RESUME-AFTER-FINISH
+    name: 誤終了後の試合再開
+  - id: EV-MKR-MATCH-RESET-FOR-REENTRY
+    name: 終了済み試合の操作履歴リセット・再入力開始
+  - id: EV-MKR-CORRECTED-MATCH-END
+    name: 再入力した試合結果の確定
+  - id: EV-MKR-UNDO
+    name: 直前操作取消
+
+scoring:
+  point_input: "得点表示領域をタップ"
+  server_scored:
+    serving_player: keep
+    service_box: toggle
+    service_box_selectable: false
+  receiver_scored:
+    serving_player: scorer
+    service_box: right
+    service_box_selectable: true
+  yes_let:
+    points: unchanged
+    serving_player: keep
+    service_box: keep
+  no_let:
+    point_to: opponent_of_appellant
+    service_rule: normal_point
+  stroke:
+    point_to: striker
+    service_rule: normal_point
+
+marker_board:
+  access: ReadOnly
+  columns:
+    - left_point
+    - left_service_box
+    - right_point
+    - right_service_box
+  service_boxes:
+    - L
+    - R
+  appeal_row_span: 2
+  current_game_only: true
+
+timers:
+  warmup_seconds:
+    scope: category
+    per_player: true
+    default: 120
+  preparation_seconds:
+    scope: category
+    default: 60
+  game_interval_seconds:
+    scope: category
+    default: 120
+  injury_time_seconds:
+    selection: dropdown
+    min: 30
+    max: 900
+    step: 30
+    selected_by: referee
+    official_self_inflicted_max: 180
+    official_contributed_max: 900
+    official_opponent_inflicted_accidental_max: 900
+    blood_injury:
+      handled_as: injury_time
+      separate_timer_state: false
+      duration_selected_by: referee
+      recurrence_decision_by: referee
+  calculation: "end_at - server_offset_corrected_current_time"
+  persistence_fields:
+    - timer_type
+    - status
+    - duration
+    - started_at
+    - end_at
+    - paused_remaining
+    - updated_at
+  browser_closed_while_running: elapsed_wall_time
+  browser_closed_while_paused: keep_remaining
+  browser_absence_transition:
+    advance_current_timer_until: zero
+    start_next_timer_automatically: false
+    start_match_automatically: false
+    start_next_game_automatically: false
+    resume_after_injury_automatically: false
+    on_return_before_expiration: restore_remaining_time
+    on_return_after_expiration: show_expired_and_require_confirmation
+    expired_state_actions:
+      left_warmup: start_right_warmup
+      right_warmup: start_preparation_interval
+      preparation: start_match
+      game_interval: start_next_game
+      injury_time: referee_decision
+  expired_on_resume: show_zero_and_unacknowledged_completion
+  chained_transition_while_browser_closed: false
+  clock_sync:
+    reference: server_time
+    account_for_round_trip_time: true
+    check_on:
+      - marker_launch
+      - websocket_reconnect
+      - before_timer_start
+      - before_timer_resume
+      - websocket_heartbeat
+    warning_threshold_seconds: 5
+    below_threshold: update_offset_without_dialog
+    at_or_above_threshold:
+      show_dialog: true
+      show_detected_difference: true
+      show_remaining_time_before_and_after: true
+      actions:
+        - apply_server_offset_and_continue
+        - check_device_datetime_and_retry
+    changes_device_system_clock: false
+    timer_recalculation: use_server_offset
+    corrected_remaining_at_or_below_zero: show_expired_without_phase_transition
+    offline: use_last_confirmed_server_offset
+    recheck_after_reconnect: true
+
+undo:
+  count: 1
+  confirmation: false
+  restore:
+    - points
+    - serving_player
+    - service_box
+    - marker_board
+    - games_won
+    - match_state
+
+persistence:
+  source_of_truth: server
+  offline_support: complete
+  release_phase: 1
+  preload_table_set: true
+  local_queue: IndexedDB
+  local_snapshot: IndexedDB
+  autosave: per_event
+  event_id_required: true
+  state_version_required: true
+  recover_after:
+    - browser_close
+    - browser_refresh
+    - browser_back
+    - orientation_change
+  sync_status:
+    - synced
+    - syncing
+    - offline
+    - error
+  blocking_error_dialog_during_offline: false
+  resume_same_browser_after_close: true
+
+operation_lock:
+  one_controller_per_match: true
+  issued_online_only: true
+  operation_session:
+    identifiers:
+      - operation_session_id
+      - device_asset_id
+      - device_installation_id
+      - control_generation
+    increment_generation_on_takeover: true
+  event_metadata:
+    - operation_session_id
+    - device_asset_id
+    - device_installation_id
+    - control_generation
+    - sequence_number
+    - event_id
+    - base_state_version
+  offline_takeover: false
+  normal_takeover_requires_no_unsynced_events: true
+  forced_takeover:
+    allowed_when_source_unreachable: true
+    warning_required: true
+    reason_required: true
+    base_state: latest_server_state
+    late_source_events: separate_conflict_branch
+  after_takeover:
+    previous_device_mode: read_only
+    show_transfer_banner_on_new_device: true
+    show_new_controller_code_on_previous_device: true
+    public_scoreboard_visibility: false
+    obs_visibility: false
+  other_device_modes:
+    - read_only
+    - takeover_with_confirmation_online
+  offline_conflict_resolution:
+    preserve_device_branches: true
+    auto_merge: false
+    interleave_by_timestamp: false
+    stop_auto_apply_after_divergence: true
+    official_record_selection: one_whole_device_branch
+    selected_by: authorized_operator
+    unselected_branch: audit_only
+    issue_new_generation_after_resolution: true
+
+post_match_correction:
+  allowed_for_marker: true
+  allowed_terminal_states:
+    - finished
+    - forfeited
+    - awarded
+    - cancelled
+  finish_event_undo: allowed
+  reset_and_reenter: allowed
+  reset_scope: all_marker_events
+  partial_event_edit: false
+  entry_mode: draft_correction_session
+  publish_during_entry: false
+  commit: atomic_replace_official_record
+  cancel: keep_previous_official_record
+  previous_record: audit_only
+  downstream_match:
+    not_started: recalculate
+    already_started: warn_operator_without_automatic_player_replacement
+
+business_rules:
+  - id: BR-MKR-001
+    rule: "サーバーが得点した場合はサーブ権を維持しサービスボックスを反転する"
+  - id: BR-MKR-002
+    rule: "ハンドアウト直後は新サーバーのサービスボックスをRightとし、直後のみ変更可能とする"
+  - id: BR-MKR-003
+    rule: "判定イベントと関連する得点・サーブ状態は同一操作として保存する"
+  - id: BR-MKR-004
+    rule: "UNDOは直前イベントとその派生状態を完全に取り消す"
+  - id: BR-MKR-005
+    rule: "重要な終了・試合授与操作は対象選手と結果を表示して確認する"
+  - id: BR-MKR-006
+    rule: "確定操作を大型表示とOBSへ同期する"
+  - id: BR-MKR-007
+    rule: "同一イベントIDはサーバー側で一度だけ処理する"
+  - id: BR-MKR-008
+    rule: "通信断中も通常のマーカー操作を停止せず、未同期状態は操作を妨げない表示で明示する"
+  - id: BR-MKR-009
+    rule: "ブラウザ終了後も同じ端末・ブラウザで直前状態から再開できる"
+  - id: BR-MKR-010
+    rule: "作動中タイマーは終了予定日時と現在日時の差からブラウザ終了中の経過を復元する"
+  - id: BR-MKR-011
+    rule: "担当コートに進行中の試合がある場合は起動時にマーカー画面へ自動復帰する"
+  - id: BR-MKR-012
+    rule: "端末回転後も左選手と右選手の位置関係および操作内容を維持する"
+  - id: BR-MKR-013
+    rule: "主要操作はページ全体のスクロールなしで使用できるようにする"
+  - id: BR-MKR-014
+    rule: "多言語対応はフェーズ3とし、フェーズ1から翻訳可能な画面構造を維持する"
+  - id: BR-MKR-015
+    rule: "310は公開済みスケジュールの最新版だけを表示し、下書き変更を公開前に表示しない"
+  - id: BR-MKR-016
+    rule: "新しい試合の開始と操作端末ロックをオンラインで一度だけ確定する"
+  - id: BR-MKR-017
+    rule: "オフライン操作はオンラインで開始済みの試合を終了まで継続する場合に限る"
+  - id: BR-MKR-018
+    rule: "前の試合が未終了でも有効な操作ロックがなければ警告後に後続試合を開始できる"
+  - id: BR-MKR-019
+    rule: "担当マーカーまたはイベント運営者は、終了済み試合を影響警告の確認後に再開または全履歴リセット・再入力できる"
+  - id: BR-MKR-020
+    rule: "音声コールはフェーズ3の補助機能とし、音声失敗時も得点・状態処理を継続する"
+  - id: BR-MKR-021
+    rule: "ゲーム終了点0では各ゲームを手動終了し、最大1ゲームは得点、最大3・5ゲームは過半数のゲーム獲得数で勝敗を決定する"
+  - id: BR-MKR-022
+    rule: "同一試合のオフライン操作が複数端末へ分岐した場合は操作を混在させず、運営者が選択した1つの端末別記録だけを正式状態へ反映する"
+  - id: BR-MKR-023
+    rule: "試合終了後もマーカーは終了操作をUNDOでき、または操作履歴全体をリセットして試合開始時点からスコアを再入力できる"
+  - id: BR-MKR-024
+    rule: "リアルタイム更新はWebSocketを基本とし、切断時はAPIポーリングへ自動切替して再接続後に最新状態を取得する"
+  - id: BR-MKR-025
+    rule: "クイックモードは初期リリースから提供し、各フェーズで通常モードに提供されるマーカー関連機能を省略せず利用可能にする"
+  - id: BR-MKR-026
+    rule: "マーカー起動用QRコードは発行元のイベント・コートだけでイベント設定の開催終了日時まで再利用でき、代替端末も同じQRコードまたは接続コードから起動する"
+  - id: BR-MKR-027
+    rule: "ゲーム終了点0かつ最大1ゲームで左右同点の場合は延長を行わず勝敗なしで終了し、左右の得点を保持したままグループ戦を継続可能にする"
+  - id: BR-MKR-028
+    rule: "ブラウザ不在中は作動中タイマーの経過だけを反映し、マーカーまたは審判の確認なしに次のタイマー、ゲーム、試合開始または試合再開へ遷移しない"
+  - id: BR-MKR-029
+    rule: "マーカー画面はイベント既定言語を初期値とし、利用者単位ではなく端末・イベント単位の言語設定で上書きできる"
+  - id: BR-MKR-030
+    rule: "対応言語は左から右の表示に限定し、言語による画面レイアウトの左右反転を行わない"
+  - id: BR-MKR-031
+    rule: "音声コールはフェーズ3でサーバー保存の1種類の標準固定音声をオンライン時だけ端末再生し、オフライン用の事前保存と端末上の音声合成は行わない"
+  - id: BR-MKR-032
+    rule: "すべてのラリーでサーバー・レシーバーを問わず勝者へ1ポイントを加算し、サーバーだけが得点する方式は採用しない"
+  - id: BR-MKR-033
+    rule: "端末とサーバーの時刻差が5秒以上の場合は確認ダイアログを表示し、確認後にサーバー時刻差分を用いてタイマーを補正する"
+  - id: BR-MKR-034
+    rule: "マーカー画面は最小画面サイズと簡略表示の境界値を設けず、小画面でも全機能を維持したまま画面全体を縮小表示する"
+  - id: BR-MKR-035
+    rule: "クイック起動は事前入力と確認を要求せず、イベント名・選手名等が空欄のクイック試合を作成して、最大1ゲーム・11点・2点差を初期値とするマーカー画面を直ちに表示する"
+  - id: BR-MKR-036
+    rule: "フェーズ1のゲーム数選択は1・3・5の先取制とするが、内部ではゲーム数を奇数へ固定せず、将来の規定ゲーム数制、偶数ゲーム、引き分け、ゲーム得失差および得失点差を再計算できるよう全ゲーム得点を保持する"
+  - id: BR-MKR-037
+    rule: "物理端末は全体で一意な端末個体番号、ブラウザはインストールIDで識別し、MACアドレス、IPアドレスまたはUser-Agentを主識別子に使用しない"
+  - id: BR-MKR-038
+    rule: "操作権引継ぎはオンライン時に操作権の世代番号を更新して実行し、旧端末を閲覧専用化し、旧端末から後着した操作を新端末の記録へ自動混在させない"
+
+pending:
+  - "公式ルール版と大会別ルール差分"
+  - "音声出力に使用する対応端末と外部スピーカーの実機要件"
+  - "クイックモードで得点入力後に最大ゲーム数、ゲーム終了点または必要点差を変更した場合の既存得点・ゲーム結果への適用方法"
+  - "規定ゲーム数制の提供フェーズ、ゲーム数の上限およびカテゴリごとの試合勝敗判定方式"
+  - "グループ順位に使用する順位点、ゲーム得失差、得失点差、直接対決等の優先順"

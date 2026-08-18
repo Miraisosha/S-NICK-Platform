@@ -1,0 +1,104 @@
+version: "1.0-draft"
+role: public
+document: ../100_Public.md
+inherited_from: "パブリックダッシュボード仕様"
+
+functions:
+  - id: PUB-110
+    name: パブリックダッシュボード
+    release_phases: [1, 3]
+  - id: PUB-120
+    name: イベント詳細
+    release_phase: 1
+  - id: PUB-130
+    name: カテゴリ・申込導線
+    release_phases: [1, 3]
+  - id: PUB-140
+    name: ドロー・日程・進行
+    release_phase: 1
+  - id: PUB-150
+    name: ライブ観戦
+    release_phase: 3
+  - id: PUB-160
+    name: 結果・アーカイブ
+    release_phases: [1, 3]
+  - id: PUB-170
+    name: 公開制御
+    release_phases: [1, 3]
+
+screens:
+  - id: SCR-PUB-111
+    function: PUB-110
+    name: トップ
+  - id: SCR-PUB-121
+    function: PUB-120
+    name: イベント詳細
+  - id: SCR-PUB-131
+    function: PUB-130
+    name: カテゴリ一覧
+  - id: SCR-PUB-141
+    function: PUB-140
+    name: 公開進行画面
+  - id: SCR-PUB-151
+    function: PUB-150
+    name: ライブ一覧・視聴
+  - id: SCR-PUB-161
+    function: PUB-160
+    name: 結果・アーカイブ
+
+dashboard_sections:
+  release_phase: 3
+  phase_1_mode: published_events_by_start_time
+  phase_3_sections:
+    - live_now
+    - entry_open
+    - upcoming
+    - past
+
+labels:
+  - live_now
+  - today
+  - entry_open
+  - entry_closing_soon
+  - entry_opening_soon
+  - entry_closed
+  - ended
+  - new
+  - live_stream_available
+
+publication_states:
+  release_phase: 3
+  phase_1_default: listed
+  values:
+    - private
+    - unlisted
+    - listed
+    - scheduled
+    - publication_ended
+
+live_states:
+  - scheduled
+  - starting_soon
+  - live
+  - ended
+  - archived
+  - cancelled
+
+business_rules:
+  - id: BR-PUB-001
+    rule: 公開対象データだけを表示する
+  - id: BR-PUB-002
+    rule: 未ログイン申込はログイン後に元の申込対象へ復帰させる
+  - id: BR-PUB-003
+    rule: 状態ラベルを開催期間・申込期間・手動設定から算出する
+  - id: BR-PUB-004
+    rule: 共有用Squash Platform公開URLを維持する
+  - id: BR-PUB-005
+    rule: 終了後は同じURLを結果・アーカイブへ切り替える
+
+pending:
+  - 画像の最大登録数・容量・許可形式
+  - 状態ラベルの境界時刻とタイムゾーン
+  - 確定前の進行・結果を公開する範囲
+  - URL限定公開のアクセス制御
+  - 公開終了後の保持期間

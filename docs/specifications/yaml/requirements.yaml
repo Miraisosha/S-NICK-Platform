@@ -1,0 +1,70 @@
+version: "1.0-draft"
+project: "Squash Platform"
+project_name_ja: "スカッシュ　プラットフォーム"
+status: "review"
+source_of_truth: "docs/specifications"
+
+roles:
+  - code: public
+    chapter: 100
+    document: ../100_Public.md
+  - code: operator
+    chapter: 200
+    document: ../200_Operator.md
+  - code: marker
+    chapter: 300
+    document: ../300_Marker.md
+  - code: player
+    chapter: 400
+    document: ../400_Player.md
+  - code: admin
+    chapter: 500
+    document: ../500_Admin.md
+
+requirement_hierarchy:
+  - chapter
+  - function
+  - screen
+  - event
+  - business_rule
+
+access_types:
+  ReadOnly: "閲覧のみ"
+  Write: "登録・更新・削除または状態変更を含む"
+
+unknown_value_policy: "未確定事項は検討中と記録する"
+
+release_phases:
+  phase_1:
+    name: "大会運営の中核機能"
+    scope:
+      - "運営者による選手手動登録"
+      - "イベント・カテゴリ"
+      - "手動ドロー・スケジュール"
+      - "マーカー完全オフライン操作"
+      - "大型得点表示・結果公開"
+  phase_2:
+    name: "運営支援の自動化"
+    scope:
+      - "運営者向けエントリー受付"
+      - "ドロー・スケジュール自動生成"
+      - "SMTPメール通知"
+      - "協会ランキング取込・シード利用"
+      - "OBSオーバーレイ"
+  phase_3:
+    name: "選手セルフサービス・外部連携"
+    scope:
+      - "選手自身のWebエントリー"
+      - "オンライン決済・キャンセル待ち"
+      - "Webプッシュ・LINE"
+      - "YouTube配信一覧・設定"
+      - "ランキング公開"
+      - "イベントライフサイクル拡張"
+  phase_4:
+    name: "マニュアル・利用者サポート"
+    scope:
+      - "操作マニュアル作成"
+    candidates:
+      - "問い合わせフォーム"
+      - "QA検索"
+    detail_status: "今後検討"

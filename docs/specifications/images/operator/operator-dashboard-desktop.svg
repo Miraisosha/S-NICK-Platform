@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">運営者ダッシュボード PC版デザイン案</title>
+  <desc id="desc">黄と茶の参考カラーパレット、大きめの文字とボタン、角丸カードを用いた大会当日運営画面。提供元表示は前面に出さない。</desc>
+  <style>
+    text { font-family: "Noto Sans JP", "Yu Gothic UI", sans-serif; fill: #2E261F; }
+    .small { font-size: 15px; }
+    .body { font-size: 17px; }
+    .label { font-size: 16px; font-weight: 600; }
+    .heading { font-size: 22px; font-weight: 700; }
+    .title { font-size: 30px; font-weight: 700; }
+    .metric { font-size: 32px; font-weight: 700; }
+    .muted { fill: #766B61; }
+    .provider { font-size: 13px; fill: #8A8178; }
+    .white { fill: #FFFFFF; }
+    .brown { fill: #572C00; }
+  </style>
+  <rect width="1440" height="900" fill="#FFFCF5"/>
+  <rect width="1440" height="76" fill="#FFFFFF"/>
+  <line x1="0" y1="76" x2="1440" y2="76" stroke="#E7DED1"/>
+  <rect x="24" y="21" width="6" height="34" rx="3" fill="#FED258"/>
+  <text x="44" y="48" class="heading brown">Squash Platform</text>
+  <rect x="892" y="14" width="290" height="48" rx="12" fill="#FFF8DF" stroke="#E7DED1"/>
+  <text x="912" y="44" class="body">第3回 関東選手権大会⌄</text>
+  <rect x="1200" y="14" width="136" height="48" rx="12" fill="#572C00"/>
+  <text x="1268" y="44" text-anchor="middle" class="label white">クイック起動</text>
+  <circle cx="1384" cy="38" r="22" fill="#FED258"/>
+  <text x="1384" y="44" text-anchor="middle" class="label brown">運</text>
+
+  <rect x="0" y="77" width="244" height="823" fill="#FFFFFF"/>
+  <g class="body">
+    <rect x="16" y="100" width="212" height="52" rx="13" fill="#FFF3C4"/>
+    <rect x="16" y="100" width="5" height="52" rx="3" fill="#572C00"/>
+    <text x="44" y="133" class="label brown">ホーム</text>
+    <text x="44" y="187">イベント</text>
+    <text x="44" y="239">スケジュール</text>
+    <text x="44" y="291">ドロー・リーグ</text>
+    <text x="44" y="343">試合管理</text>
+    <text x="44" y="395">コート・端末</text>
+    <text x="44" y="447">スタッフ</text>
+    <text x="44" y="499">スポンサー</text>
+  </g>
+  <line x1="24" y1="538" x2="220" y2="538" stroke="#E7DED1"/>
+  <text x="28" y="575" class="small muted">本日の運営</text>
+  <rect x="24" y="592" width="196" height="88" rx="14" fill="#FFFCF5" stroke="#E7DED1"/>
+  <circle cx="50" cy="619" r="7" fill="#38A169"/>
+  <text x="68" y="625" class="label">オンライン</text>
+  <text x="44" y="655" class="small muted">最終同期 10:32:18</text>
+
+  <g transform="translate(280 106)">
+    <text x="0" y="26" class="small muted">2026年8月8日（土）　東京スカッシュセンター</text>
+    <text x="0" y="68" class="title">大会当日ダッシュボード</text>
+    <rect x="397" y="36" width="86" height="34" rx="17" fill="#E8F7EE"/>
+    <text x="440" y="59" text-anchor="middle" class="label" fill="#237A45">開催中</text>
+    <rect x="984" y="28" width="136" height="48" rx="12" fill="#FED258"/>
+    <text x="1052" y="59" text-anchor="middle" class="label brown">イベント設定</text>
+
+    <g transform="translate(0 102)">
+      <rect width="250" height="126" rx="18" fill="#FFFFFF" stroke="#E7DED1"/>
+      <text x="24" y="36" class="body muted">使用コート</text><text x="24" y="82" class="metric">12</text><text x="72" y="82" class="body muted">面</text>
+      <rect x="270" width="250" height="126" rx="18" fill="#FFFFFF" stroke="#E7DED1"/>
+      <text x="294" y="36" class="body muted">試合中</text><text x="294" y="82" class="metric">6</text><text x="329" y="82" class="body muted">試合</text>
+      <rect x="540" width="250" height="126" rx="18" fill="#FFFFFF" stroke="#E7DED1"/>
+      <text x="564" y="36" class="body muted">開始待ち</text><text x="564" y="82" class="metric">4</text><text x="599" y="82" class="body muted">試合</text>
+      <rect x="810" width="310" height="126" rx="18" fill="#FFF4F5" stroke="#F2C5CC"/>
+      <text x="834" y="36" class="body" fill="#A3293D">対応が必要</text><text x="834" y="82" class="metric" fill="#A3293D">2</text><text x="869" y="82" class="body" fill="#A3293D">件</text>
+      <text x="1082" y="82" text-anchor="end" class="label" fill="#A3293D">確認する →</text>
+    </g>
+
+    <g transform="translate(0 254)">
+      <rect width="750" height="458" rx="20" fill="#FFFFFF" stroke="#E7DED1"/>
+      <text x="24" y="48" class="heading">現在の試合・次の試合</text>
+      <rect x="566" y="18" width="160" height="48" rx="12" fill="#FFF8DF" stroke="#E7DED1"/>
+      <text x="646" y="49" text-anchor="middle" class="label brown">全試合を見る</text>
+      <line x1="24" y1="82" x2="726" y2="82" stroke="#E7DED1"/>
+
+      <text x="24" y="116" class="small muted">時刻</text><text x="112" y="116" class="small muted">コート</text><text x="212" y="116" class="small muted">対戦</text><text x="548" y="116" class="small muted">状態</text>
+      <g transform="translate(0 132)">
+        <rect x="16" width="718" height="78" rx="14" fill="#FFFDF8"/>
+        <text x="24" y="47" class="label">10:30</text><text x="112" y="47" class="label">A</text>
+        <text x="212" y="34" class="body">佐藤 花子 vs 鈴木 美咲</text><text x="212" y="60" class="small muted">女子A・準決勝</text>
+        <rect x="540" y="21" width="92" height="36" rx="18" fill="#E8F7EE"/><text x="586" y="45" text-anchor="middle" class="label" fill="#237A45">試合中</text>
+        <text x="698" y="50" text-anchor="middle" font-size="28" class="brown">›</text>
+      </g>
+      <g transform="translate(0 218)">
+        <rect x="16" width="718" height="78" rx="14" fill="#FFFDF8"/>
+        <text x="24" y="47" class="label">10:40</text><text x="112" y="47" class="label">B</text>
+        <text x="212" y="34" class="body">田中 健 vs 山本 翔</text><text x="212" y="60" class="small muted">男子B・2回戦</text>
+        <rect x="540" y="21" width="92" height="36" rx="18" fill="#FFF3C4"/><text x="586" y="45" text-anchor="middle" class="label brown">開始待ち</text>
+        <text x="698" y="50" text-anchor="middle" font-size="28" class="brown">›</text>
+      </g>
+      <g transform="translate(0 304)">
+        <rect x="16" width="718" height="78" rx="14" fill="#FFFDF8"/>
+        <text x="24" y="47" class="label">10:50</text><text x="112" y="47" class="label">C</text>
+        <text x="212" y="34" class="body">高橋 葵 vs 伊藤 凛</text><text x="212" y="60" class="small muted">女子B・1回戦</text>
+        <rect x="540" y="21" width="92" height="36" rx="18" fill="#EAF5FF"/><text x="586" y="45" text-anchor="middle" class="label" fill="#176A9C">予定</text>
+        <text x="698" y="50" text-anchor="middle" font-size="28" class="brown">›</text>
+      </g>
+    </g>
+
+    <g transform="translate(774 254)">
+      <rect width="346" height="280" rx="20" fill="#FFFFFF" stroke="#E7DED1"/>
+      <text x="22" y="48" class="heading">対応が必要</text>
+      <rect x="18" y="72" width="310" height="88" rx="14" fill="#FFF4F5"/>
+      <circle cx="40" cy="99" r="8" fill="#D6455D"/>
+      <text x="58" y="105" class="label">コートB 前試合が未終了</text>
+      <text x="58" y="134" class="small muted">10:25から更新がありません</text>
+      <rect x="218" y="170" width="110" height="48" rx="12" fill="#572C00"/><text x="273" y="201" text-anchor="middle" class="label white">確認する</text>
+      <text x="22" y="254" class="small muted">警告は大型表示には表示されません</text>
+
+      <rect y="302" width="346" height="156" rx="20" fill="#FFFFFF" stroke="#E7DED1"/>
+      <text x="22" y="350" class="heading">端末状況</text>
+      <text x="22" y="390" class="body">接続中　12台</text><text x="22" y="424" class="body">オフライン　1台</text>
+      <rect x="206" y="374" width="122" height="50" rx="12" fill="#FFF8DF" stroke="#E7DED1"/>
+      <text x="267" y="406" text-anchor="middle" class="label brown">端末管理</text>
+    </g>
+  </g>
+  <text x="1408" y="882" text-anchor="end" class="provider">提供：株式会社未来創社</text>
+</svg>
