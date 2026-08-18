@@ -7,7 +7,7 @@ export default defineConfig({
     emptyOutDir: true,
     outDir: 'webroot/build',
     rollupOptions: {
-      input: 'resources/js/app.js',
+      input: 'resources/js/front/main.js',
       output: {
         entryFileNames: 'assets/app.js',
         chunkFileNames: 'assets/[name].js',

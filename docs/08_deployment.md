@@ -70,6 +70,8 @@ rsyncは本番配置先をGitHub Actionsの成果物へ同期し、成果物に�
 
 `ONAMAE_RUN_MIGRATIONS`は初期状態で`false`とする。本番バックアップ、失敗時の復旧手順、マイグレーションの後方互換性を確認した後に`true`へ変更する。
 
+`true`の場合、Runnerはアプリケーションの同期後にSSH経由で`bin/cake.php migrations migrate`を実行する。未適用のマイグレーションだけが順番に適用され、失敗した場合は後続のヘルスチェックへ進まずデプロイを失敗として終了する。SQLファイルを直接順番に実行する方式は使用しない。
+
 ## RSプランのSSH制約
 
 RSプランではSSH、scp、rsync、tar、PHPが利用できる。国外IPアドレスからのSSH接続制限が有効な場合、GitHub-hosted runnerから接続できない可能性がある。その場合は次のいずれかを選択する。
