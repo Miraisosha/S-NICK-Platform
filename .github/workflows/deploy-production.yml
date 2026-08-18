@@ -1,0 +1,235 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f # 2.35.5
+        with:
+          php-version: '8.5'
+          extensions: intl, mbstring, pdo_mysql, simplexml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install PHP dependencies for verification
+        working-directory: app
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHP tests and coding standards
+        working-directory: app
+        run: composer check
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Build frontend assets
+        working-directory: app
+        run: npm run build
+
+      - name: Prepare production PHP dependencies
+        working-directory: app
+        run: >-
+          composer install
+          --no-dev
+          --no-interaction
+          --prefer-dist
+          --optimize-autoloader
+
+      - name: Create deployment directory
+        run: |
+          set -euo pipefail
+          mkdir release
+          rsync \
+            --recursive \
+            --links \
+            --perms \
+            --times \
+            --exclude='/.gitignore' \
+            --exclude='/config/app_local.php' \
+            --exclude='/config/.env' \
+            --exclude='/logs/***' \
+            --exclude='/tmp/***' \
+            --exclude='/node_modules/***' \
+            --exclude='/resources/***' \
+            --exclude='/tests/***' \
+            --exclude='/webroot/uploads/***' \
+            --exclude='/package.json' \
+            --exclude='/package-lock.json' \
+            --exclude='/vite.config.js' \
+            --exclude='/phpunit.xml.dist' \
+            --exclude='/phpcs.xml' \
+            --exclude='/phpstan.neon' \
+            --exclude='/psalm.xml' \
+            --exclude='/README.md' \
+            app/ \
+            release/
+
+          test -f release/vendor/autoload.php
+          test -f release/webroot/build/assets/app.js
+          test -f release/webroot/build/assets/app.css
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-${{ github.sha }}
+          path: release/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Onamae.com RS
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://platform.s-nick.com
+    env:
+      DEPLOY_HOST: ${{ secrets.ONAMAE_SSH_HOST }}
+      DEPLOY_USER: ${{ secrets.ONAMAE_SSH_USER }}
+      DEPLOY_PRIVATE_KEY: ${{ secrets.ONAMAE_SSH_PRIVATE_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.ONAMAE_SSH_KNOWN_HOSTS }}
+      DEPLOY_PORT: ${{ vars.ONAMAE_SSH_PORT }}
+      DEPLOY_PATH: ${{ vars.ONAMAE_DEPLOY_PATH }}
+      HEALTHCHECK_URL: ${{ vars.ONAMAE_HEALTHCHECK_URL }}
+      RUN_MIGRATIONS: ${{ vars.ONAMAE_RUN_MIGRATIONS }}
+
+    steps:
+      - name: Download deployment artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: production-${{ github.sha }}
+          path: release
+
+      - name: Validate deployment configuration
+        run: |
+          set -euo pipefail
+
+          required=(
+            DEPLOY_HOST
+            DEPLOY_USER
+            DEPLOY_PRIVATE_KEY
+            DEPLOY_KNOWN_HOSTS
+            DEPLOY_PORT
+            DEPLOY_PATH
+          )
+
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "GitHub production environment setting is missing: ${name}" >&2
+              exit 1
+            fi
+          done
+
+          if [[ ! "$DEPLOY_PORT" =~ ^[0-9]+$ ]]; then
+            echo 'ONAMAE_SSH_PORT must be numeric.' >&2
+            exit 1
+          fi
+
+          if [[ "$DEPLOY_PATH" != /* || "$DEPLOY_PATH" == '/' || "$DEPLOY_PATH" =~ [[:space:]] ]]; then
+            echo 'ONAMAE_DEPLOY_PATH must be an absolute path without whitespace and cannot be /.' >&2
+            exit 1
+          fi
+
+          test -f release/vendor/autoload.php
+          test -f release/webroot/build/assets/app.js
+
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_PRIVATE_KEY" > "$HOME/.ssh/onamae_deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/onamae_deploy_key" "$HOME/.ssh/known_hosts"
+
+      - name: Verify protected deployment target
+        run: |
+          set -euo pipefail
+          printf -v target_path '%q' "$DEPLOY_PATH"
+          ssh \
+            -i "$HOME/.ssh/onamae_deploy_key" \
+            -p "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "test -f ${target_path}/.snick-platform-deploy-target"
+
+      - name: Synchronize application
+        run: |
+          set -euo pipefail
+          rsync \
+            --recursive \
+            --links \
+            --perms \
+            --times \
+            --compress \
+            --delete-delay \
+            --safe-links \
+            --itemize-changes \
+            --exclude='/.snick-platform-deploy-target' \
+            --exclude='/config/app_local.php' \
+            --exclude='/config/.env' \
+            --exclude='/logs/***' \
+            --exclude='/tmp/***' \
+            --exclude='/webroot/uploads/***' \
+            -e "ssh -i $HOME/.ssh/onamae_deploy_key -p $DEPLOY_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes" \
+            release/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Prepare writable directories
+        run: |
+          set -euo pipefail
+          printf -v target_path '%q' "$DEPLOY_PATH"
+          ssh \
+            -i "$HOME/.ssh/onamae_deploy_key" \
+            -p "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p ${target_path}/logs ${target_path}/tmp/cache/models ${target_path}/tmp/cache/persistent ${target_path}/tmp/cache/views ${target_path}/tmp/sessions && chmod -R u+rwX ${target_path}/logs ${target_path}/tmp"
+
+      - name: Run database migrations
+        if: env.RUN_MIGRATIONS == 'true'
+        run: |
+          set -euo pipefail
+          printf -v target_path '%q' "$DEPLOY_PATH"
+          ssh \
+            -i "$HOME/.ssh/onamae_deploy_key" \
+            -p "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd ${target_path} && /usr/bin/php bin/cake.php migrations migrate"
+
+      - name: Check production response
+        if: env.HEALTHCHECK_URL != ''
+        run: curl --fail --silent --show-error --retry 3 --retry-delay 5 "$HEALTHCHECK_URL"

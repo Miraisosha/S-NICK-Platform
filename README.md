@@ -22,13 +22,13 @@ Squash Platformは、スカッシュ大会の企画、エントリー受付、�
 | 区分 | 採用技術・サービス |
 |---|---|
 | 本番環境 | お名前.com レンタルサーバー RSプラン |
-| バックエンド | PHP 8.5 / CakePHP |
-| フロントエンド | Vue.js / Bootstrap |
+| バックエンド | PHP 8.5 / CakePHP 5.4 |
+| フロントエンド | Vue.js 3.5 / Bootstrap 5.3 / Vite 8 |
 | データベース | MySQL |
 | ソース管理 | GitHub |
 | サーバー接続 | SSH（接続確認済み） |
 
-CakePHP、Vue.js、Bootstrap、MySQLの詳細バージョンと開発・デプロイ方法は検討中です。
+ローカル開発ではNode.js 24、MySQL 8.4 LTSを使用します。本番MySQLのバージョンは検討中です。本番デプロイはGitHub Actionsからお名前.com RSプランへSSH・rsyncで行います。
 
 ## ドメイン構成
 
@@ -53,11 +53,13 @@ CakePHP、Vue.js、Bootstrap、MySQLの詳細バージョンと開発・デプ�
 - [ライブ配信](docs/04_live-streaming.md)
 - [ネットワーク・機材](docs/05_network-and-hardware.md)
 - [開発ロードマップ](docs/06_development-roadmap.md)
+- [ローカル開発環境](docs/07_local-development.md)
+- [GitHub Actionsによる本番デプロイ](docs/08_deployment.md)
 
 `docs/01`～`06`はプロジェクト全体の方針・基本設計、`docs/specifications/`は利用者別の詳細要件と実装へ引き継ぐ仕様を管理します。
 
 ## 現在の方針
 
 - 決定済み事項と検討中事項を区別して記録します。
-- 現段階では実装コードを作成しません。
-- 仕様確定後、小さな機能単位で設計・実装・テストを進めます。
+- 要件整理を継続しながら、合意済みの範囲を小さな機能単位で設計・実装・テストします。
+- 未決定事項は推測で実装せず、仕様を確認してから進めます。
