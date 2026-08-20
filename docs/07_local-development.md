@@ -55,6 +55,12 @@ docker compose exec app bin/cake
 # Composerを実行
 docker compose exec app composer install
 
+# 未適用のデータベースマイグレーションを確認
+docker compose exec app bin/cake migrations status
+
+# データベースマイグレーションを適用
+docker compose exec app bin/cake migrations migrate
+
 # Node.js補助コンテナも起動
 docker compose --profile tools up -d
 
@@ -85,6 +91,13 @@ Web画面は `http://localhost:8080` で確認する。`.env`の`APP_PORT`を変
 | パスワード | `.env`の`MYSQL_PASSWORD` |
 
 MySQLのデータはDockerの名前付きボリューム`mysql-data`へ保持する。`docker compose down`では削除されない。`docker compose down -v`はローカルデータを削除するため、意図して初期化する場合だけ使用する。
+
+## データベース変更の管理
+
+- テーブル、カラム、インデックス等の変更は`app/config/Migrations`のCakePHPマイグレーションで管理する。
+- 既存マイグレーションを適用後に書き換えず、変更ごとに新しいマイグレーションを追加する。
+- 初期マイグレーションでは、通常ユーザー、管理者、選手、イベント、イベントスタッフ、固定ロールおよびスタッフへのロール付与を作成する。
+- 試合、スケジュール、オフライン同期等のテーブルは、未決定の物理設計を確定してから追加する。
 
 ## 秘密情報
 

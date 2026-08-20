@@ -94,7 +94,7 @@ jobs:
 
           test -f release/vendor/autoload.php
           test -f release/webroot/build/assets/app.js
-          test -f release/webroot/build/assets/app.css
+          test -f release/webroot/build/assets/main.css
 
       - name: Upload deployment artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

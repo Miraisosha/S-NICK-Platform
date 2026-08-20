@@ -33,6 +33,55 @@ Docker Composeを使用し、PHP 8.5＋Apache、MySQL、Node.jsの開発環境�
 
 初期構成は単一のCakePHPバックエンドと単一のMySQLデータベースを使用する。利用者コードはURL、画面、権限を分けるためのものであり、利用者ごとに独立したアプリケーションや試合状態を作らない。Vue.jsの共通部品と共通APIを利用者別画面から使用する。
 
+### ディレクトリとAPI・FRONTの分離
+
+**決定済み**
+
+- アプリケーション全体はCakePHP 5の標準ディレクトリ構成に従い、CakePHPプロジェクトを`app/`に配置する。
+- ブラウザ画面を`FRONT`、JSONを入出力するバックエンドインターフェースを`API`と呼ぶ。
+- FRONTのURLは`/`、`/operator`、`/marker`、`/player`、`/admin`等の利用者別URLとする。
+- APIのURLは`/api/v1/...`とし、URLへバージョンを含める。API Controllerは`App\\Controller\\Api\\V1`名前空間へ配置する。
+- APIはCakePHPの自動フォールバックルートへ依存せず、エンドポイント実装時にHTTPメソッドを含むルートを明示する。
+- Vue.jsは`resources/js/front`を画面のエントリーポイント、`resources/js/api`をAPIクライアント、`resources/js/shared`を画面とAPIクライアントで共有する定数・型・補助処理の配置先とする。
+- Vueの画面は利用者区分ごとに`views/public`、`views/operator`、`views/marker`、`views/player`、`views/admin`へ分ける。複数区分で使用するUIは`components/common`、画面枠は`components/layout`へ配置する。
+- API Controllerのテストは、本体と対応する`tests/TestCase/Controller/Api/V1`へ配置する。
+
+```text
+app/
+├─ config/
+│  └─ routes.php
+├─ src/
+│  ├─ Controller/
+│  │  ├─ Api/V1/              # JSON API Controller
+│  │  └─ ...                   # FRONT用Controller
+│  ├─ Model/                   # CakePHP Entity・Table
+│  └─ ...                      # その他のCakePHP標準配置
+├─ templates/                  # CakePHP FRONTテンプレート
+├─ resources/js/
+│  ├─ api/                     # APIクライアント
+│  ├─ front/
+│  │  ├─ components/
+│  │  │  ├─ common/
+│  │  │  └─ layout/
+│  │  ├─ composables/
+│  │  ├─ router/
+│  │  ├─ stores/
+│  │  ├─ views/
+│  │  │  ├─ public/
+│  │  │  ├─ operator/
+│  │  │  ├─ marker/
+│  │  │  ├─ player/
+│  │  │  └─ admin/
+│  │  ├─ App.vue
+│  │  └─ main.js
+│  └─ shared/                  # 共通定数・型・補助処理
+├─ tests/TestCase/Controller/
+│  └─ Api/V1/                 # API Controllerテスト
+└─ webroot/build/              # Vite生成物（直接編集しない）
+```
+
+FRONTとAPIはソースとURLの責務を分離するが、初期段階では同一CakePHPアプリケーションとして配備する。別ドメイン、別リポジトリ、別デプロイ単位への分割は行わない。
+
 ### 本番データベース接続
 
 | 項目 | 設定 |
