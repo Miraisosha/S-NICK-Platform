@@ -118,7 +118,7 @@ class UsersControllerTest extends TestCase
         $this->post('/users/login', ['email' => $email, 'password' => 'Xk7!qpLm']);
 
         $this->assertResponseSuccess();
-        $this->assertRedirect('/');
+        $this->assertRedirect('/dashboard');
     }
 
     public function testLoginWithWrongPasswordShowsGenericMessage(): void
@@ -201,7 +201,7 @@ class UsersControllerTest extends TestCase
         Chronos::setTestNow(DateTime::now()->addMinutes(31));
         $this->post('/users/login', ['email' => $email, 'password' => 'Xk7!qpLm']);
 
-        $this->assertRedirect('/');
+        $this->assertRedirect('/dashboard');
     }
 
     public function testSuccessfulLoginResetsFailureCount(): void
@@ -271,7 +271,7 @@ class UsersControllerTest extends TestCase
         $this->assertResponseOk();
 
         $this->post('/users/login', ['email' => $email, 'password' => 'NewPass2!']);
-        $this->assertRedirect('/');
+        $this->assertRedirect('/dashboard');
     }
 
     public function testResetPasswordWithInvalidTokenShowsError(): void

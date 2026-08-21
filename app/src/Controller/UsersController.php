@@ -115,8 +115,7 @@ class UsersController extends AppController
             $this->Authentication->setIdentity($user);
             $this->Flash->success(__('メールアドレスの確認が完了しました。'));
 
-            // TODO: OPR-230 運営者メニュー実装後、ログイン後の遷移先をそちらへ変更する。
-            return $this->redirect('/');
+            return $this->redirect('/dashboard');
         } catch (InvalidOrExpiredTokenException) {
             $this->Flash->error(__('確認用のリンクが無効か、有効期限が切れています。確認メールの再送をお試しください。'));
 
@@ -161,8 +160,14 @@ class UsersController extends AppController
             $this->loginAttemptService()->recordSuccess($user);
             $this->usersTable()->rehashPasswordIfNeeded($user, (string)$this->request->getData('password'));
 
+            // A distinct top-level session key: writing this under 'Auth'
+            // (even as 'Auth.securityStamp') would collide with the
+            // Authentication plugin's own SessionAuthenticator, which
+            // stores the persisted identity directly under 'Auth' and
+            // skips writing it if that key already exists - silently
+            // breaking login entirely.
             $this->request->getSession()->write(
-                'Auth.securityStamp',
+                'AuthSecurityStamp',
                 $user->sessions_invalidated_at?->format(DATE_ATOM),
             );
 
@@ -242,10 +247,10 @@ class UsersController extends AppController
      */
     private function safeRedirectTarget(): string
     {
-        $target = (string)$this->request->getQuery('redirect', '/');
+        $target = (string)$this->request->getQuery('redirect', '/dashboard');
 
         if ($target === '' || $target[0] !== '/' || str_starts_with($target, '//')) {
-            return '/';
+            return '/dashboard';
         }
 
         return $target;

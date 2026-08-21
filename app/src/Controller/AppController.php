@@ -95,7 +95,7 @@ class AppController extends Controller
         }
 
         $session = $this->request->getSession();
-        $sessionStamp = $session->read('Auth.securityStamp');
+        $sessionStamp = $session->read('AuthSecurityStamp');
         $userId = $identity->getIdentifier();
 
         $user = $userId === null ? null : $this->usersTable()->find()
