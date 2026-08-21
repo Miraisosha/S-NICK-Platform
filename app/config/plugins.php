@@ -28,6 +28,7 @@
   * - optional: Do not throw an exception if the plugin is not found. Default false.
   */
 return [
+    'Authentication' => [],
     'DebugKit' => ['onlyDebug' => true],
     'Bake' => ['onlyCli' => true, 'optional' => true],
     'Migrations' => ['onlyCli' => true],

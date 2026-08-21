@@ -16,7 +16,10 @@ declare(strict_types=1);
  */
 namespace App\Controller;
 
+use App\Model\Table\UsersTable;
+use Authentication\Authenticator\SessionAuthenticator;
 use Cake\Controller\Controller;
+use Cake\Event\EventInterface;
 
 /**
  * Application Controller
@@ -24,6 +27,7 @@ use Cake\Controller\Controller;
  * Add your application-wide methods in the class below, your controllers
  * will inherit them.
  *
+ * @property \Authentication\Controller\Component\AuthenticationComponent $Authentication
  * @link https://book.cakephp.org/5/en/controllers.html#the-app-controller
  */
 class AppController extends Controller
@@ -43,10 +47,78 @@ class AppController extends Controller
 
         $this->loadComponent('Flash');
 
+        // `requireIdentity` defaults to true (deny unless the action opts
+        // out via addUnauthenticatedActions()), which would silently make
+        // every controller - including public-facing ones like Pages -
+        // require a login. Access control per controller/area is not part
+        // of this OPR-210 auth increment, so require it to be opted into
+        // explicitly (e.g. a future operator-area controller) rather than
+        // opted out of everywhere.
+        $this->loadComponent('Authentication.Authentication', [
+            'requireIdentity' => false,
+        ]);
+
         /*
          * Enable the following component for recommended CakePHP form protection settings.
          * see https://book.cakephp.org/5/en/controllers/components/form-protection.html
          */
         //$this->loadComponent('FormProtection');
+    }
+
+    /**
+     * Forces logout when the identity's security stamp (`users.sessions_invalidated_at`)
+     * no longer matches the value recorded in the session at login time.
+     *
+     * This is how a password reset invalidates other active sessions
+     * (see SCR-OPR-213) without a full multi-device session store.
+     *
+     * Only applies to an identity that was resolved from the persisted
+     * session (a returning, already-logged-in visitor). A fresh login
+     * that just succeeded via the Form authenticator in this very request
+     * is deliberately left alone: `UsersController::login()` is the one
+     * that writes today's stamp into the session, and it does so only
+     * after this method has already run.
+     *
+     * @param \Cake\Event\EventInterface<static> $event The beforeFilter event.
+     * @return void
+     */
+    public function beforeFilter(EventInterface $event): void
+    {
+        $identity = $this->Authentication->getIdentity();
+        if ($identity === null) {
+            return;
+        }
+
+        $provider = $this->Authentication->getAuthenticationService()->getAuthenticationProvider();
+        if (!$provider instanceof SessionAuthenticator) {
+            return;
+        }
+
+        $session = $this->request->getSession();
+        $sessionStamp = $session->read('Auth.securityStamp');
+        $userId = $identity->getIdentifier();
+
+        $user = $userId === null ? null : $this->usersTable()->find()
+            ->select(['id', 'sessions_invalidated_at'])
+            ->where(['id' => $userId])
+            ->first();
+
+        $currentStamp = $user?->sessions_invalidated_at?->format(DATE_ATOM);
+
+        if ($user === null || ($currentStamp !== null && $currentStamp !== $sessionStamp)) {
+            $this->Authentication->logout();
+            $session->destroy();
+
+            $event->setResult($this->redirect(['controller' => 'Users', 'action' => 'login']));
+        }
+    }
+
+    /**
+     * @return \App\Model\Table\UsersTable
+     */
+    protected function usersTable(): UsersTable
+    {
+        /** @var \App\Model\Table\UsersTable */
+        return $this->fetchTable('Users');
     }
 }

@@ -1,0 +1,91 @@
+/*
+ * Auth screens (register / login / forgot & reset password).
+ * Palette and spacing follow docs/specifications/UiDesignGuide.md.
+ * Loaded only by templates/Users/*.php - not part of the wider site chrome.
+ */
+:root {
+    --sp-yellow: #FED258;
+    --sp-brown: #572C00;
+    --sp-pink: #FF008F;
+    --sp-blue: #00A6FF;
+    --sp-bg: #FFFCF5;
+    --sp-text: #2E261F;
+    --sp-border: #E7DED1;
+}
+
+.auth-page {
+    background: var(--sp-bg);
+    color: var(--sp-text);
+    padding: 32px 16px;
+}
+
+.auth-card {
+    max-width: 420px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid var(--sp-border);
+    border-radius: 16px;
+    padding: 32px 24px;
+}
+
+.auth-card h1 {
+    font-size: 28px;
+    margin-bottom: 24px;
+    color: var(--sp-brown);
+}
+
+.auth-card label {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.auth-card input[type="email"],
+.auth-card input[type="password"],
+.auth-card input[type="text"] {
+    width: 100%;
+    min-height: 48px;
+    font-size: 16px;
+    border: 1px solid var(--sp-border);
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+
+.auth-card .btn-primary {
+    display: inline-block;
+    width: 100%;
+    min-height: 48px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    background: var(--sp-brown);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.auth-card .auth-links {
+    margin-top: 16px;
+    font-size: 14px;
+}
+
+.auth-card .auth-links a {
+    color: var(--sp-blue);
+}
+
+.auth-card .password-requirements {
+    font-size: 14px;
+    color: var(--sp-text);
+    background: var(--sp-bg);
+    border: 1px solid var(--sp-border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.footer-credit {
+    font-size: 13px;
+    color: #8a8a8a;
+}

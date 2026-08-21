@@ -17,6 +17,10 @@ declare(strict_types=1);
 namespace App;
 
 use App\Middleware\HostHeaderMiddleware;
+use Authentication\AuthenticationService;
+use Authentication\AuthenticationServiceInterface;
+use Authentication\AuthenticationServiceProviderInterface;
+use Authentication\Middleware\AuthenticationMiddleware;
 use Cake\Core\Configure;
 use Cake\Core\ContainerInterface;
 use Cake\Datasource\FactoryLocator;
@@ -29,16 +33,15 @@ use Cake\Http\MiddlewareQueue;
 use Cake\ORM\Locator\TableLocator;
 use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Application setup class.
  *
  * This defines the bootstrapping logic and middleware layers you
  * want to use in your application.
- *
- * @extends \Cake\Http\BaseApplication<\App\Application>
  */
-class Application extends BaseApplication
+class Application extends BaseApplication implements AuthenticationServiceProviderInterface
 {
     /**
      * Load all the application configuration and bootstrap logic.
@@ -86,6 +89,10 @@ class Application extends BaseApplication
             // See https://github.com/CakeDC/cakephp-cached-routing
             ->add(new RoutingMiddleware($this))
 
+            // Adds identification/authentication information to the request.
+            // https://book.cakephp.org/authentication/4/en/index.html
+            ->add(new AuthenticationMiddleware($this))
+
             // Parse various types of encoded request bodies so that they are
             // available as array through $request->getData()
             // https://book.cakephp.org/5/en/controllers/middleware.html#body-parser-middleware
@@ -125,5 +132,52 @@ class Application extends BaseApplication
         // $eventManager->on(new SomeCustomListenerClass());
 
         return $eventManager;
+    }
+
+    /**
+     * Returns a service provider instance.
+     *
+     * @param \Psr\Http\Message\ServerRequestInterface $request Request
+     * @return \Authentication\AuthenticationServiceInterface
+     */
+    public function getAuthenticationService(ServerRequestInterface $request): AuthenticationServiceInterface
+    {
+        $service = new AuthenticationService([
+            'unauthenticatedRedirect' => '/users/login',
+            'queryParam' => 'redirect',
+        ]);
+
+        // cakephp/authentication 4.x builds each authenticator's identifier
+        // from an `identifier` sub-config (via IdentifierFactory) rather
+        // than a shared, service-level loadIdentifier() call.
+        $passwordIdentifier = [
+            'className' => 'Authentication.Password',
+            'fields' => [
+                'username' => 'email',
+                'password' => 'password_hash',
+            ],
+            'resolver' => [
+                'className' => 'Authentication.Orm',
+                'userModel' => 'Users',
+                'finder' => 'loginable',
+            ],
+            'passwordHasher' => [
+                'className' => 'Authentication.Default',
+                'hashType' => PASSWORD_ARGON2ID,
+                'hashOptions' => (array)Configure::read('PasswordHasher.argon2id'),
+            ],
+        ];
+
+        $service->loadAuthenticator('Authentication.Session');
+        $service->loadAuthenticator('Authentication.Form', [
+            'identifier' => $passwordIdentifier,
+            'loginUrl' => '/users/login',
+            'fields' => [
+                'username' => 'email',
+                'password' => 'password',
+            ],
+        ]);
+
+        return $service;
     }
 }

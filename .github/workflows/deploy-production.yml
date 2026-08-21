@@ -19,6 +19,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: snick_platform_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+          --character-set-server=utf8mb4
+          --collation-server=utf8mb4_0900_ai_ci
+
+    env:
+      DATABASE_TEST_URL: mysql://root@127.0.0.1:3306/snick_platform_test?encoding=utf8mb4&timezone=UTC
+
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

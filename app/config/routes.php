@@ -62,6 +62,14 @@ return function (RouteBuilder $routes): void {
          */
         $builder->connect('/pages/*', 'Pages::display');
 
+        $builder->connect('/users/register', ['controller' => 'Users', 'action' => 'register']);
+        $builder->connect('/users/register/resend', ['controller' => 'Users', 'action' => 'resendVerification']);
+        $builder->connect('/users/verify-email', ['controller' => 'Users', 'action' => 'verifyEmail']);
+        $builder->connect('/users/login', ['controller' => 'Users', 'action' => 'login']);
+        $builder->connect('/users/logout', ['controller' => 'Users', 'action' => 'logout']);
+        $builder->connect('/users/forgot-password', ['controller' => 'Users', 'action' => 'forgotPassword']);
+        $builder->connect('/users/reset-password', ['controller' => 'Users', 'action' => 'resetPassword']);
+
         /*
          * Connect catchall routes for all controllers.
          *

@@ -82,6 +82,34 @@ return [
     ],
 
     /*
+     * Password hashing and account policy configuration used by
+     * `App\Service\Auth\*` and the Authentication plugin's Password identifier.
+     *
+     * See docs/specifications/200_Operator.md (SCR-OPR-211/213/214) for the
+     * decided defaults. Values are overridable per environment via env vars.
+     */
+    'PasswordHasher' => [
+        'argon2id' => [
+            'memory_cost' => (int)env('PASSWORD_HASH_MEMORY_COST', 19456),
+            'time_cost' => (int)env('PASSWORD_HASH_TIME_COST', 2),
+            'threads' => (int)env('PASSWORD_HASH_THREADS', 1),
+        ],
+    ],
+    'PasswordPolicy' => [
+        'minLength' => (int)env('PASSWORD_MIN_LENGTH', 6),
+        'maxLength' => (int)env('PASSWORD_MAX_LENGTH', 64),
+    ],
+    'LoginLockout' => [
+        'maxFailures' => (int)env('LOGIN_LOCKOUT_MAX_FAILURES', 5),
+        'lockMinutes' => (int)env('LOGIN_LOCKOUT_MINUTES', 30),
+    ],
+    'AccountToken' => [
+        'expiryMinutes' => (int)env('ACCOUNT_TOKEN_EXPIRY_MINUTES', 60),
+        'resendCooldownSeconds' => (int)env('ACCOUNT_TOKEN_RESEND_COOLDOWN_SECONDS', 60),
+        'resendDailyLimit' => (int)env('ACCOUNT_TOKEN_RESEND_DAILY_LIMIT', 5),
+    ],
+
+    /*
      * Apply timestamps with the last modified time to static assets (js, css, images).
      * Will append a querystring parameter containing the time the file was modified.
      * This is useful for busting browser caches.
@@ -323,6 +351,15 @@ return [
              * which is the recommended value in production environments
              */
             //'init' => ['SET GLOBAL innodb_stats_on_metadata = 0'],
+
+            /*
+             * DSN-style overrides (host/user/password/database) from the
+             * environment. compose.yaml (local Docker) and the production
+             * deploy workflow both set DATABASE_URL directly rather than
+             * relying on an untracked config/app_local.php, matching how
+             * EmailTransport.default.url is already read below.
+             */
+            'url' => env('DATABASE_URL', null),
         ],
 
         /*
@@ -339,6 +376,7 @@ return [
             'quoteIdentifiers' => false,
             'log' => false,
             //'init' => ['SET GLOBAL innodb_stats_on_metadata = 0'],
+            'url' => env('DATABASE_TEST_URL', null),
         ],
     ],
 

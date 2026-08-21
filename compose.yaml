@@ -15,7 +15,14 @@ services:
       APP_DEFAULT_TIMEZONE: Asia/Tokyo
       APP_FULL_BASE_URL: http://localhost:${APP_PORT:-8080}
       DEBUG: "true"
+      # Local dev only - not used for anything in production.
+      SECURITY_SALT: "snick-platform-local-dev-salt-do-not-use-in-production"
       DATABASE_URL: mysql://${MYSQL_USER:-snick}:${MYSQL_PASSWORD:-snick_dev_password}@db:3306/${MYSQL_DATABASE:-snick_platform}?encoding=utf8mb4&timezone=Asia%2FTokyo
+      DATABASE_TEST_URL: mysql://${MYSQL_USER:-snick}:${MYSQL_PASSWORD:-snick_dev_password}@db:3306/${MYSQL_DATABASE:-snick_platform}?encoding=utf8mb4&timezone=Asia%2FTokyo
+      # Local dev only: emails are captured by DebugKit's Mail panel instead of
+      # being sent. Real SMTP credentials (SCR-OPR-215) are environment-only in
+      # production and never committed here.
+      EMAIL_TRANSPORT_DEFAULT_URL: "debug://"
       TZ: Asia/Tokyo
     volumes:
       - ./app:/var/www/html

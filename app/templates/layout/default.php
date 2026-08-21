@@ -51,6 +51,9 @@ $cakeDescription = 'CakePHP: the rapid development php framework';
         </div>
     </main>
     <footer>
+        <?php if (empty($hideFooterCredit)): ?>
+        <p class="footer-credit">提供：株式会社未来創社</p>
+        <?php endif; ?>
     </footer>
     <?= $this->Html->script('/build/assets/app.js', ['type' => 'module']) ?>
 </body>
