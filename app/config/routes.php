@@ -176,5 +176,27 @@ return function (RouteBuilder $routes): void {
             '/events/{eventId}/categories/{id}',
             ['controller' => 'EventsCategories', 'action' => 'delete', 'prefix' => 'Api/V1'],
         )->setPass(['eventId', 'id']);
+
+        // SCR-OPR-261: operators browse the admin-managed facility/court
+        // master read-only, to select courts for an event.
+        $builder->get('/facilities', ['controller' => 'Facilities', 'action' => 'index', 'prefix' => 'Api/V1']);
+
+        // SCR-OPR-2402/2404 開催場所・使用コート・利用時間 (see EventsController).
+        $builder->get(
+            '/events/{id}/courts',
+            ['controller' => 'Events', 'action' => 'courts', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->put(
+            '/events/{id}/courts',
+            ['controller' => 'Events', 'action' => 'updateCourts', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->get(
+            '/events/{id}/usage-times',
+            ['controller' => 'Events', 'action' => 'usageTimes', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->put(
+            '/events/{id}/usage-times',
+            ['controller' => 'Events', 'action' => 'updateUsageTimes', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
     });
 };

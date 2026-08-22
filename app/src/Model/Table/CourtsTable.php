@@ -6,6 +6,7 @@ namespace App\Model\Table;
 use Cake\ORM\Query\SelectQuery;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
+use Cake\ORM\TableRegistry;
 use Cake\Validation\Validator;
 
 /**
@@ -63,16 +64,28 @@ class CourtsTable extends Table
     }
 
     /**
-     * No delete-reference guard yet: `event_courts` (which would reference
-     * a court) doesn't exist until the usage-time milestone. That milestone
-     * adds the corresponding rule here - see the implementation plan.
-     *
      * @param \Cake\ORM\RulesChecker $rules The rules object to be modified.
      * @return \Cake\ORM\RulesChecker
      */
     public function buildRules(RulesChecker $rules): RulesChecker
     {
         $rules->add($rules->existsIn('facility_id', 'Facilities'), 'facilityExists');
+
+        // SCR-ADM-522 delete-reference guard: only takes effect for an
+        // entity-based save()/delete() of a single court. The one deletion
+        // path that exists today (FacilitiesController::delete(), cascading
+        // to every court under a facility) uses a bulk updateAll() and
+        // checks this itself instead, since buildRules() never runs for
+        // bulk updates - see that method's comment.
+        $rules->addDelete(function ($court) {
+            /** @var \App\Model\Table\EventCourtsTable $eventCourtsTable */
+            $eventCourtsTable = TableRegistry::getTableLocator()->get('EventCourts');
+
+            return $eventCourtsTable->find()->where(['court_id' => $court->id])->count() === 0;
+        }, 'notReferencedByEvent', [
+            'errorField' => 'id',
+            'message' => __('このコートはイベントで使用されているため削除できません。'),
+        ]);
 
         return $rules;
     }

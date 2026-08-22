@@ -54,6 +54,7 @@ function formatDate(iso) {
         <div style="display: flex; gap: 1rem">
           <router-link :to="`/events/${event.id}/edit`">編集</router-link>
           <router-link :to="`/events/${event.id}/categories`">カテゴリ管理</router-link>
+          <router-link :to="`/events/${event.id}/courts`">使用コート・利用時間</router-link>
         </div>
       </div>
     </div>

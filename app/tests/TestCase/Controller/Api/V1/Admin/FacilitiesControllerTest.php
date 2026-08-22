@@ -17,6 +17,9 @@ class FacilitiesControllerTest extends TestCase
     private $Admins;
     private $Facilities;
     private $Courts;
+    private $Users;
+    private $Events;
+    private $EventCourts;
 
     protected function setUp(): void
     {
@@ -24,11 +27,14 @@ class FacilitiesControllerTest extends TestCase
         $this->Admins = $this->fetchTable('Admins');
         $this->Facilities = $this->fetchTable('Facilities');
         $this->Courts = $this->fetchTable('Courts');
+        $this->Users = $this->fetchTable('Users');
+        $this->Events = $this->fetchTable('Events');
+        $this->EventCourts = $this->fetchTable('EventCourts');
     }
 
     protected function tearDown(): void
     {
-        unset($this->Admins, $this->Facilities, $this->Courts);
+        unset($this->Admins, $this->Facilities, $this->Courts, $this->Users, $this->Events, $this->EventCourts);
         parent::tearDown();
     }
 
@@ -193,6 +199,53 @@ class FacilitiesControllerTest extends TestCase
         $this->assertResponseCode(200);
         $this->assertNotNull($this->Facilities->get($facility->id)->deleted_at);
         $this->assertNotNull($this->Courts->get($court->id)->deleted_at);
+    }
+
+    /**
+     * Regression test for the M5 delete-reference guard: a facility whose
+     * court is selected by an event must not be deletable. Added alongside
+     * EventsController's courts/usageTimes sub-actions - see
+     * FacilitiesController::delete()'s comment for why this check lives
+     * there rather than in CourtsTable::buildRules() (the actual deletion
+     * is a bulk updateAll(), which never runs buildRules()).
+     */
+    public function testDeleteRejectsFacilityWithCourtReferencedByEvent(): void
+    {
+        $this->loginAsAdmin();
+
+        $facility = $this->Facilities->saveOrFail($this->Facilities->newEntity(['name' => 'Gym']));
+        $court = $this->Courts->saveOrFail($this->Courts->newEntity([
+            'facility_id' => $facility->id,
+            'name' => 'Court A',
+        ]));
+
+        $user = $this->Users->newEntity([
+            'account_number' => 'U' . bin2hex(random_bytes(4)),
+            'email' => 'facdelete-' . bin2hex(random_bytes(4)) . '@example.com',
+            'password_hash' => password_hash('Xk7!qpLm', PASSWORD_ARGON2ID),
+            'email_verified_at' => DateTime::now(),
+        ], ['accessibleFields' => ['*' => true]]);
+        $this->Users->saveOrFail($user);
+
+        $event = $this->Events->newEntity([
+            'name' => 'テスト大会',
+            'start_at' => '2026-09-01T09:00:00',
+            'end_at' => '2026-09-01T18:00:00',
+        ]);
+        $event->patch(['owner_user_id' => $user->id, 'publication_status' => 'published'], ['guard' => false]);
+        $this->Events->saveOrFail($event);
+
+        $eventCourt = $this->EventCourts->newEntity(
+            ['court_id' => $court->id],
+            ['accessibleFields' => ['event_id' => true]],
+        );
+        $eventCourt->patch(['event_id' => $event->id, 'created' => DateTime::now()], ['guard' => false]);
+        $this->EventCourts->saveOrFail($eventCourt);
+
+        $this->delete('/api/v1/admin/facilities/' . $facility->id);
+
+        $this->assertResponseCode(422);
+        $this->assertNull($this->Facilities->get($facility->id)->deleted_at, 'Referenced facility must not be deleted.');
     }
 
     public function testIndexExcludesSoftDeletedFacilities(): void

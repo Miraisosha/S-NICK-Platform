@@ -6,6 +6,7 @@ namespace App\Controller\Api\V1\Admin;
 use App\Model\Entity\Court;
 use App\Model\Entity\Facility;
 use App\Model\Table\CourtsTable;
+use App\Model\Table\EventCourtsTable;
 use App\Model\Table\FacilitiesTable;
 use Authentication\IdentityInterface;
 use Cake\Datasource\Exception\RecordNotFoundException;
@@ -147,6 +148,24 @@ class FacilitiesController extends AppController
             return $this->jsonError('not_found', __('施設が見つかりません。'), 404);
         }
 
+        // SCR-ADM-522 "イベントまたは試合で参照中の施設・コートは、影響を確認せず
+        // 削除できない": checked here rather than as a CourtsTable buildRules()
+        // guard, because the actual deletion below is a bulk updateAll() (all
+        // of a facility's courts at once), which - unlike an entity save() -
+        // never runs buildRules() at all.
+        $referencedCourtCount = $this->eventCourtsTable()->find()
+            ->matching('Courts', function ($q) use ($facility) {
+                return $q->where(['Courts.facility_id' => $facility->id]);
+            })
+            ->count();
+        if ($referencedCourtCount > 0) {
+            return $this->jsonError(
+                'referenced',
+                __('この施設のコートはイベントで使用されているため削除できません。'),
+                422,
+            );
+        }
+
         $now = DateTime::now();
         $this->facilitiesTable()->getConnection()->transactional(function () use ($facility, $now): void {
             $this->courtsTable()->updateAll(
@@ -266,5 +285,14 @@ class FacilitiesController extends AppController
     {
         /** @var \App\Model\Table\CourtsTable */
         return $this->fetchTable('Courts');
+    }
+
+    /**
+     * @return \App\Model\Table\EventCourtsTable
+     */
+    private function eventCourtsTable(): EventCourtsTable
+    {
+        /** @var \App\Model\Table\EventCourtsTable */
+        return $this->fetchTable('EventCourts');
     }
 }

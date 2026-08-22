@@ -15,3 +15,10 @@ export function updateFacility(id, payload) {
 export function deleteFacility(id) {
   return apiDelete(`/admin/facilities/${id}`);
 }
+
+// Read-only, operator-authenticated (not /admin/*): SCR-OPR-261 lets
+// operators browse the facility/court master to select courts for an
+// event, without the create/edit/delete access above (admin-only).
+export function listFacilitiesForOperator() {
+  return apiGet('/facilities');
+}
