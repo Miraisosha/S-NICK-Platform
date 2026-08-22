@@ -146,5 +146,17 @@ return function (RouteBuilder $routes): void {
             '/admin/facilities/{id}',
             ['controller' => 'Facilities', 'action' => 'delete', 'prefix' => 'Api/V1/Admin'],
         )->setPass(['id']);
+
+        // SCR-OPR-2401〜2404 イベント管理 (operator, see EventsController).
+        $builder->get('/events', ['controller' => 'Events', 'action' => 'index', 'prefix' => 'Api/V1']);
+        $builder->post('/events', ['controller' => 'Events', 'action' => 'add', 'prefix' => 'Api/V1']);
+        $builder->get(
+            '/events/{id}',
+            ['controller' => 'Events', 'action' => 'view', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->put(
+            '/events/{id}',
+            ['controller' => 'Events', 'action' => 'edit', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
     });
 };

@@ -16,7 +16,7 @@ const siteTitle = 'Squash Platform';
  */
 const navItems = [
   { label: 'ダッシュボード', url: '/dashboard' },
-  { label: '大会管理', url: null },
+  { label: '大会管理', url: '/events' },
   { label: 'エントリー管理', url: null },
   { label: '試合・スケジュール管理', url: null },
   { label: 'コート管理', url: null },
@@ -72,7 +72,7 @@ async function onLogout() {
             v-if="item.url"
             :to="item.url"
             class="operator-nav-item"
-            :class="{ 'is-active': route.path === item.url }"
+            :class="{ 'is-active': route.path === item.url || route.path.startsWith(item.url + '/') }"
           >
             {{ item.label }}
           </router-link>

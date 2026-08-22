@@ -59,9 +59,18 @@ class FacilitiesControllerTest extends TestCase
         return $admin;
     }
 
+    /**
+     * Uses replaceRequest(), not configRequest(): configRequest() merges
+     * into any existing $this->_request via array_merge_recursive(), which
+     * for a second call in the same test turns the string `input` key into
+     * `[newJson, oldJson]` - crashing the next request when the harness
+     * tries to write that array as the request body (see
+     * EventsControllerTest's identical fix for the multi-request test that
+     * first surfaced this).
+     */
     private function jsonRequest(array $data): void
     {
-        $this->configRequest([
+        $this->replaceRequest([
             'environment' => ['CONTENT_TYPE' => 'application/json'],
             'input' => json_encode($data),
         ]);

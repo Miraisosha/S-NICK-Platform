@@ -54,6 +54,24 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/events',
+    name: 'events',
+    component: () => import('../views/operator/events/EventList.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/events/new',
+    name: 'events-new',
+    component: () => import('../views/operator/events/EventForm.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/events/:id/edit',
+    name: 'events-edit',
+    component: () => import('../views/operator/events/EventForm.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/admin/login',
     name: 'admin-login',
     component: () => import('../views/admin/AdminLogin.vue'),
