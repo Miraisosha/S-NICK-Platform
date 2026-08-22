@@ -15,6 +15,8 @@ use Cake\Validation\Validator;
  */
 class EventsTable extends Table
 {
+    use DateTimeAfterValidationTrait;
+
     /**
      * @param array<string, mixed> $config The configuration for the Table.
      * @return void
@@ -98,41 +100,6 @@ class EventsTable extends Table
             ->allowEmptyString('notes');
 
         return $validator;
-    }
-
-    /**
-     * Whether `$value` is a later datetime than the named field in
-     * `$context['data']`. Custom rule because CakePHP's built-in
-     * `greaterThanField()`/`Validation::comparison()` only actually compares
-     * when both sides are numeric (or the operator is an equality check) -
-     * for any other operator it silently returns false for non-numeric
-     * values, which includes every ISO datetime string. Confirmed by
-     * reading Validation::comparison()'s source after this rule rejected
-     * even correctly-ordered dates during manual testing.
-     *
-     * @param mixed $value The field being validated (already datetime-format-checked by `dateTime()`).
-     * @param array<string, mixed> $context Validation context, including sibling field data.
-     * @param string $compareField The field `$value` must be later than.
-     * @return bool
-     */
-    private static function isAfter(mixed $value, array $context, string $compareField): bool
-    {
-        $compareValue = $context['data'][$compareField] ?? null;
-        if (!is_string($compareValue) || $compareValue === '' || !is_string($value)) {
-            // Nothing to compare against (e.g. the optional
-            // registration_start_at wasn't supplied) - not this rule's job
-            // to flag as missing.
-            return true;
-        }
-
-        $valueTimestamp = strtotime($value);
-        $compareTimestamp = strtotime($compareValue);
-
-        if ($valueTimestamp === false || $compareTimestamp === false) {
-            return true;
-        }
-
-        return $valueTimestamp > $compareTimestamp;
     }
 
     /**

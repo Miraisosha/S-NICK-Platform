@@ -158,5 +158,23 @@ return function (RouteBuilder $routes): void {
             '/events/{id}',
             ['controller' => 'Events', 'action' => 'edit', 'prefix' => 'Api/V1'],
         )->setPass(['id']);
+
+        // SCR-OPR-2405 カテゴリ管理 (nested under an event, see EventsCategoriesController).
+        $builder->get(
+            '/events/{eventId}/categories',
+            ['controller' => 'EventsCategories', 'action' => 'index', 'prefix' => 'Api/V1'],
+        )->setPass(['eventId']);
+        $builder->post(
+            '/events/{eventId}/categories',
+            ['controller' => 'EventsCategories', 'action' => 'add', 'prefix' => 'Api/V1'],
+        )->setPass(['eventId']);
+        $builder->put(
+            '/events/{eventId}/categories/{id}',
+            ['controller' => 'EventsCategories', 'action' => 'edit', 'prefix' => 'Api/V1'],
+        )->setPass(['eventId', 'id']);
+        $builder->delete(
+            '/events/{eventId}/categories/{id}',
+            ['controller' => 'EventsCategories', 'action' => 'delete', 'prefix' => 'Api/V1'],
+        )->setPass(['eventId', 'id']);
     });
 };

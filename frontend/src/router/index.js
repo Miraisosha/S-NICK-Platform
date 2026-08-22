@@ -72,6 +72,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/events/:id/categories',
+    name: 'events-categories',
+    component: () => import('../views/operator/events/CategoryList.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/admin/login',
     name: 'admin-login',
     component: () => import('../views/admin/AdminLogin.vue'),

@@ -51,7 +51,10 @@ function formatDate(iso) {
         <h3 style="margin-top: 0">{{ event.name }}</h3>
         <p v-if="event.subtitle" style="color: var(--op-text-muted); margin: 0 0 0.5rem">{{ event.subtitle }}</p>
         <p style="margin: 0 0 1rem">{{ formatDate(event.start_at) }} 〜 {{ formatDate(event.end_at) }}</p>
-        <router-link :to="`/events/${event.id}/edit`">編集</router-link>
+        <div style="display: flex; gap: 1rem">
+          <router-link :to="`/events/${event.id}/edit`">編集</router-link>
+          <router-link :to="`/events/${event.id}/categories`">カテゴリ管理</router-link>
+        </div>
       </div>
     </div>
   </OperatorShell>
