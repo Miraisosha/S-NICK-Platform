@@ -19,6 +19,12 @@ services:
       SECURITY_SALT: "snick-platform-local-dev-salt-do-not-use-in-production"
       DATABASE_URL: mysql://${MYSQL_USER:-snick}:${MYSQL_PASSWORD:-snick_dev_password}@db:3306/${MYSQL_DATABASE:-snick_platform}?encoding=utf8mb4&timezone=Asia%2FTokyo
       DATABASE_TEST_URL: mysql://${MYSQL_USER:-snick}:${MYSQL_PASSWORD:-snick_dev_password}@db:3306/${MYSQL_DATABASE:-snick_platform}?encoding=utf8mb4&timezone=Asia%2FTokyo
+      # Origin(s) allowed to call /api/v1/* (see src/Middleware/CorsMiddleware.php)
+      # and the base URL used for verification/reset-password email links (see
+      # src/Mailer/AuthMailer.php). Must match wherever `frontend/`'s dev server
+      # actually runs - keep in sync with FRONTEND_PORT below if changed.
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-5173}
+      FRONTEND_BASE_URL: http://localhost:${FRONTEND_PORT:-5173}
       # Local dev only: emails are captured by DebugKit's Mail panel instead of
       # being sent. Real SMTP credentials (SCR-OPR-215) are environment-only in
       # production and never committed here.
@@ -52,14 +58,21 @@ services:
       retries: 20
       start_period: 20s
 
+  # Builds/serves `frontend/` (Vue.js FRONT), managed independently from the
+  # `app` service (CakePHP API) - see docs/specifications/010_SystemArchitecture.md
+  # "ディレクトリとAPI・FRONTの分離". Not required for local dev if Node.js is
+  # already installed on the host: `cd frontend && npm install && npm run dev`
+  # works the same way without Docker.
   node:
     image: node:${NODE_VERSION:-24}-bookworm-slim
     profiles: ["tools"]
     working_dir: /var/www/html
     environment:
       TZ: Asia/Tokyo
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
     volumes:
-      - ./app:/var/www/html
+      - ./frontend:/var/www/html
     command: ["sleep", "infinity"]
 
 volumes:

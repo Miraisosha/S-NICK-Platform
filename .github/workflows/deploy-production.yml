@@ -63,7 +63,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: |
+            app/package-lock.json
+            frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: app
@@ -71,6 +73,20 @@ jobs:
 
       - name: Build frontend assets
         working-directory: app
+        run: npm run build
+
+      # `frontend/` (Vue.js FRONT) is managed independently from `app/`'s own
+      # bundled JS above - see docs/specifications/010_SystemArchitecture.md
+      # "ディレクトリとAPI・FRONTの分離". Only its build output is folded into
+      # the release artifact (as `release/frontend/`); actually serving it
+      # from `platform.s-nick.com` is a separate hosting-configuration task
+      # (see the FRONT/API migration plan's judgment call #4).
+      - name: Install FRONT (Vue) dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build FRONT (Vue)
+        working-directory: frontend
         run: npm run build
 
       - name: Prepare production PHP dependencies
@@ -114,6 +130,10 @@ jobs:
           test -f release/vendor/autoload.php
           test -f release/webroot/build/assets/app.js
           test -f release/webroot/build/assets/main.css
+
+          mkdir -p release/frontend
+          rsync --recursive --links --perms --times frontend/dist/ release/frontend/
+          test -f release/frontend/index.html
 
       - name: Upload deployment artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

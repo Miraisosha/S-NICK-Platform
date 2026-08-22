@@ -11,7 +11,7 @@ Docker Composeを使用し、Squash Platformのローカル開発環境を構築
 |---|---|---|
 | `app` | Apache、PHP、Composer、CakePHP実行環境 | PHP 8.5、CakePHP 5.4（決定済み） |
 | `db` | ローカルデータベース | MySQL 8.4 LTS（ローカル暫定、2026-08-18確認） |
-| `node` | Vue.js 3.5、Bootstrap 5.3、Vite 8の依存管理・ビルド用 | Node.js 24（必要時のみ起動） |
+| `node` | `frontend/`（Vue.js FRONT）の依存管理・ビルド用。Node.jsがホストにあれば不要 | Node.js 24（必要時のみ起動） |
 
 本番MySQLのバージョン、照合順序、TLS接続条件は接続試験後に確定する。確認結果によってローカルMySQLのバージョンと照合順序を合わせる。
 
@@ -29,12 +29,23 @@ PowerShellでリポジトリ直下へ移動し、ローカル設定を作成す�
 Copy-Item .env.example .env
 ```
 
-`.env`はGit管理外である。開発用パスワードを変更する場合は、このファイルだけを編集する。その後、バックエンドとフロントエンドの依存関係をインストールする。
+`.env`はGit管理外である。開発用パスワードを変更する場合は、このファイルだけを編集する。その後、APIの依存関係をインストールする。
 
 ```powershell
 docker compose run --rm app composer install
-docker compose --profile tools run --rm --no-deps node npm ci
-docker compose --profile tools run --rm --no-deps node npm run build
+```
+
+FRONT（`frontend/`）はNode.jsで独立して依存関係を管理する。ホストにNode.js 24系がある場合はそのまま使う。
+
+```powershell
+cd frontend
+npm install
+```
+
+ホストにNode.jsを入れたくない場合は、代わりに`node`コンテナを使う。
+
+```powershell
+docker compose --profile tools run --rm --no-deps node npm install
 ```
 
 ## 基本操作
@@ -61,20 +72,39 @@ docker compose exec app bin/cake migrations status
 # データベースマイグレーションを適用
 docker compose exec app bin/cake migrations migrate
 
-# Node.js補助コンテナも起動
-docker compose --profile tools up -d
-
-# Vue.js・Bootstrapを変更中、自動的に再ビルド
-docker compose --profile tools exec node npm run dev
-
-# フロントエンドを1回ビルド
-docker compose --profile tools run --rm --no-deps node npm run build
-
 # 停止
 docker compose down
 ```
 
-Web画面は `http://localhost:8080` で確認する。`.env`の`APP_PORT`を変更した場合は、そのポートを使用する。
+APIは `http://localhost:8080` で確認する（`.env`の`APP_PORT`を変更した場合は、そのポートを使用する）。CakePHP自身のエラー・診断ページ以外の画面はここには無い。
+
+## フロントエンド（Vue.js）
+
+`frontend/`はAPI（`app/`）と別に管理するVueプロジェクトで、Viteの開発サーバーで動かす。ホストにNode.jsがある場合:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+`http://localhost:5173` で確認する。Node.jsをホストに入れていない場合は`node`コンテナ経由で同じことができる。
+
+```powershell
+docker compose --profile tools up -d
+docker compose --profile tools exec node npm run dev -- --host
+```
+
+FRONTはAPIへ`fetch(..., { credentials: 'include' })`でJSON呼び出しを行い、Cookieベースのセッションをそのまま使う（`frontend/src/api/client.js`）。APIはCORSで許可するオリジンとメールリンクの遷移先を`.env`の`FRONTEND_PORT`（既定`5173`）から`http://localhost:<FRONTEND_PORT>`として組み立てる（`compose.yaml`の`app`サービスの`CORS_ALLOWED_ORIGINS`/`FRONTEND_BASE_URL`）。Viteの開発サーバーのポートを変えた場合は、`.env`の`FRONTEND_PORT`も同じ値に変更し、`docker compose up -d`でAPIコンテナを再起動する。
+
+確認メール・パスワード再設定メールのリンクも同じ`http://localhost:<FRONTEND_PORT>`を指す（`Frontend.baseUrl`設定）。メール本文はDebugKitのMailパネルで確認する（`compose.yaml`の`EMAIL_TRANSPORT_DEFAULT_URL: "debug://"`により実際には送信されない）。
+
+FRONTのビルド成果物（`frontend/dist/`）を確認する場合:
+
+```powershell
+cd frontend
+npm run build
+npm run preview
+```
 
 ## データベース接続
 
