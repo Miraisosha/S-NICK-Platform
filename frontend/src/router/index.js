@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useAdminAuthStore } from '../stores/adminAuth';
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -52,6 +53,18 @@ const routes = [
     component: () => import('../views/operator/Dashboard.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/admin/login',
+    name: 'admin-login',
+    component: () => import('../views/admin/AdminLogin.vue'),
+    meta: { adminGuestOnly: true },
+  },
+  {
+    path: '/admin',
+    name: 'admin-home',
+    component: () => import('../views/admin/AdminHome.vue'),
+    meta: { requiresAdminAuth: true },
+  },
 ];
 
 export const router = createRouter({
@@ -60,6 +73,29 @@ export const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+  // Admin routes are checked against a completely separate store/session
+  // from operator routes (see docs/specifications/500_Admin.md §501 and
+  // Application::getAdminAuthenticationService()) - being logged in as one
+  // says nothing about the other, so each guard only ever touches its own
+  // store.
+  if (to.meta.requiresAdminAuth || to.meta.adminGuestOnly) {
+    const adminAuth = useAdminAuthStore();
+
+    if (!adminAuth.initialized) {
+      await adminAuth.fetchCurrentAdmin();
+    }
+
+    if (to.meta.requiresAdminAuth && !adminAuth.isAuthenticated) {
+      return { name: 'admin-login', query: { redirect: to.fullPath } };
+    }
+
+    if (to.meta.adminGuestOnly && adminAuth.isAuthenticated) {
+      return { name: 'admin-home' };
+    }
+
+    return true;
+  }
+
   const auth = useAuthStore();
 
   if (!auth.initialized) {

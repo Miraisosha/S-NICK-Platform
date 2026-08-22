@@ -169,6 +169,10 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
      */
     public function getAuthenticationService(ServerRequestInterface $request): AuthenticationServiceInterface
     {
+        if (str_starts_with($request->getUri()->getPath(), '/api/v1/admin/')) {
+            return $this->getAdminAuthenticationService();
+        }
+
         $service = new AuthenticationService([
             'unauthenticatedRedirect' => '/users/login',
             'queryParam' => 'redirect',
@@ -222,6 +226,56 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             'identifier' => $passwordIdentifier,
             'loginUrl' => '/api/v1/users/login',
             'fields' => $formFields,
+        ]);
+
+        return $service;
+    }
+
+    /**
+     * Authentication service for `/api/v1/admin/*` requests. Kept entirely
+     * separate from the regular-user service above: a different identifier
+     * (`Admins` table, not `Users`), and a different session key
+     * (`AdminAuth`, not `Auth`) so being logged in as a platform admin and
+     * being logged in as an operator/user are independent of each other
+     * within the same browser session (docs/specifications/500_Admin.md
+     * §501 "認証ガード、ログインセッション...は通常ユーザーと分離する" -
+     * see the implementation plan's judgment call on session separation for
+     * why this stops short of a fully separate cookie/subdomain).
+     *
+     * @return \Authentication\AuthenticationServiceInterface
+     */
+    private function getAdminAuthenticationService(): AuthenticationServiceInterface
+    {
+        $service = new AuthenticationService([
+            'unauthenticatedRedirect' => '/api/v1/admin/login',
+        ]);
+
+        $service->loadAuthenticator('Authentication.Session', [
+            'sessionKey' => 'AdminAuth',
+        ]);
+        $service->loadAuthenticator('Authentication.Form', [
+            'loginUrl' => '/api/v1/admin/login',
+            'fields' => [
+                'username' => 'email',
+                'password' => 'password',
+            ],
+            'identifier' => [
+                'className' => 'Authentication.Password',
+                'fields' => [
+                    'username' => 'email',
+                    'password' => 'password_hash',
+                ],
+                'resolver' => [
+                    'className' => 'Authentication.Orm',
+                    'userModel' => 'Admins',
+                    'finder' => 'loginable',
+                ],
+                'passwordHasher' => [
+                    'className' => 'Authentication.Default',
+                    'hashType' => PASSWORD_ARGON2ID,
+                    'hashOptions' => (array)Configure::read('PasswordHasher.argon2id'),
+                ],
+            ],
         ]);
 
         return $service;

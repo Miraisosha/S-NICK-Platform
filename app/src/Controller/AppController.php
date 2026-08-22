@@ -79,11 +79,23 @@ class AppController extends Controller
      * that writes today's stamp into the session, and it does so only
      * after this method has already run.
      *
+     * Does not apply to `/api/v1/admin/*` requests: admins authenticate via
+     * a completely separate identity source (the `admins` table, session
+     * key `AdminAuth` - see Application::getAdminAuthenticationService())
+     * that has no `sessions_invalidated_at` security-stamp concept. Without
+     * this guard, an authenticated admin identity would be looked up in
+     * `usersTable()`, find no matching row, and get force-logged-out on
+     * every request.
+     *
      * @param \Cake\Event\EventInterface<static> $event The beforeFilter event.
      * @return void
      */
     public function beforeFilter(EventInterface $event): void
     {
+        if (str_starts_with($this->request->getUri()->getPath(), '/api/v1/admin/')) {
+            return;
+        }
+
         $identity = $this->Authentication->getIdentity();
         if ($identity === null) {
             return;

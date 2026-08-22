@@ -112,5 +112,21 @@ return function (RouteBuilder $routes): void {
             '/users/reset-password',
             ['controller' => 'Users', 'action' => 'resetPassword', 'prefix' => 'Api/V1'],
         );
+
+        // /api/v1/admin/*: platform-admin JSON API, authenticated separately
+        // from the routes above (see Application::getAdminAuthenticationService()
+        // and docs/specifications/500_Admin.md §501).
+        $builder->post(
+            '/admin/login',
+            ['controller' => 'AdminUsers', 'action' => 'login', 'prefix' => 'Api/V1/Admin'],
+        );
+        $builder->post(
+            '/admin/logout',
+            ['controller' => 'AdminUsers', 'action' => 'logout', 'prefix' => 'Api/V1/Admin'],
+        );
+        $builder->get(
+            '/admin/me',
+            ['controller' => 'AdminUsers', 'action' => 'me', 'prefix' => 'Api/V1/Admin'],
+        );
     });
 };
