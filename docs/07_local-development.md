@@ -106,6 +106,22 @@ npm run build
 npm run preview
 ```
 
+## テスト用アカウントの手動作成
+
+自己登録（SCR-OPR-211、メール確認あり）・管理者専用ログインを経由せず、確認済みの状態でアカウントを直接作成できる。開発・確認用であり、本番では使用しない。
+
+```powershell
+# 運営者アカウント（確認済み状態で作成）
+docker compose exec -e OPERATOR_BOOTSTRAP_PASSWORD='パスワード' app bin/cake create_operator --email=operator@example.com
+
+# 管理者アカウント（docs/specifications/500_Admin.md §501、既定でsuper_admin）
+docker compose exec -e ADMIN_BOOTSTRAP_PASSWORD='パスワード' app bin/cake create_admin --email=admin@example.com --name="管理者"
+```
+
+`*_BOOTSTRAP_PASSWORD`を省略した場合はコンソールで入力を求める（画面には表示される。CakePHPの`ConsoleIo`に非表示入力が無いため）。
+
+`composer test`/`composer check`はテスト用DBと開発用DBが同一のため、実行するとここで作成したアカウントを含め全データが消える。確認作業のたびに再作成が必要。
+
 ## データベース接続
 
 コンテナ間では、CakePHPからホスト名`db`、ポート`3306`で接続する。Composeは`DATABASE_URL`を`app`コンテナへ渡す。
