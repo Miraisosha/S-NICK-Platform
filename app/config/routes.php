@@ -128,5 +128,23 @@ return function (RouteBuilder $routes): void {
             '/admin/me',
             ['controller' => 'AdminUsers', 'action' => 'me', 'prefix' => 'Api/V1/Admin'],
         );
+
+        // SCR-ADM-522 施設・コート管理 (admin-only, see FacilitiesController).
+        $builder->get(
+            '/admin/facilities',
+            ['controller' => 'Facilities', 'action' => 'index', 'prefix' => 'Api/V1/Admin'],
+        );
+        $builder->post(
+            '/admin/facilities',
+            ['controller' => 'Facilities', 'action' => 'add', 'prefix' => 'Api/V1/Admin'],
+        );
+        $builder->put(
+            '/admin/facilities/{id}',
+            ['controller' => 'Facilities', 'action' => 'edit', 'prefix' => 'Api/V1/Admin'],
+        )->setPass(['id']);
+        $builder->delete(
+            '/admin/facilities/{id}',
+            ['controller' => 'Facilities', 'action' => 'delete', 'prefix' => 'Api/V1/Admin'],
+        )->setPass(['id']);
     });
 };

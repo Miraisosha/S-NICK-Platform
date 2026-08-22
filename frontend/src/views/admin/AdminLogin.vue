@@ -22,7 +22,7 @@ async function onSubmit() {
   submitting.value = true;
   try {
     await auth.login(email.value, password.value);
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/admin';
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/admin/facilities';
     router.push(redirect);
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'ログインに失敗しました。';

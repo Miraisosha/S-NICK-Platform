@@ -59,10 +59,11 @@ const routes = [
     component: () => import('../views/admin/AdminLogin.vue'),
     meta: { adminGuestOnly: true },
   },
+  { path: '/admin', redirect: '/admin/facilities' },
   {
-    path: '/admin',
-    name: 'admin-home',
-    component: () => import('../views/admin/AdminHome.vue'),
+    path: '/admin/facilities',
+    name: 'admin-facilities',
+    component: () => import('../views/admin/Facilities.vue'),
     meta: { requiresAdminAuth: true },
   },
 ];

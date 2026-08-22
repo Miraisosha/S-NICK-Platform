@@ -41,3 +41,11 @@ export function apiGet(path) {
 export function apiPost(path, body = {}) {
   return request(path, { method: 'POST', body });
 }
+
+export function apiPut(path, body = {}) {
+  return request(path, { method: 'PUT', body });
+}
+
+export function apiDelete(path) {
+  return request(path, { method: 'DELETE' });
+}
