@@ -109,6 +109,23 @@ class AppController extends Controller
             $this->Authentication->logout();
             $session->destroy();
 
+            if (str_starts_with($this->request->getUri()->getPath(), '/api/')) {
+                $body = [
+                    'error' => [
+                        'code' => 'session_invalidated',
+                        'message' => __('セッションが無効になりました。再度ログインしてください。'),
+                    ],
+                ];
+                $event->setResult(
+                    $this->response
+                        ->withStatus(401)
+                        ->withType('application/json')
+                        ->withStringBody((string)json_encode($body, JSON_UNESCAPED_UNICODE)),
+                );
+
+                return;
+            }
+
             $event->setResult($this->redirect(['controller' => 'Users', 'action' => 'login']));
         }
     }

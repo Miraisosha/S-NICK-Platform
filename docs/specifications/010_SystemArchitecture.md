@@ -31,56 +31,52 @@ Docker Composeを使用し、PHP 8.5＋Apache、MySQL、Node.jsの開発環境�
 - 本番マイグレーションはバックアップ・復旧手順の確定まで無効とする。
 - 詳細は[GitHub Actionsによる本番デプロイ](../08_deployment.md)を参照する。
 
-初期構成は単一のCakePHPバックエンドと単一のMySQLデータベースを使用する。利用者コードはURL、画面、権限を分けるためのものであり、利用者ごとに独立したアプリケーションや試合状態を作らない。Vue.jsの共通部品と共通APIを利用者別画面から使用する。
+単一のCakePHP APIバックエンドと単一のMySQLデータベースを使用する。利用者コードはURL、画面、権限を分けるためのものであり、利用者ごとに独立したアプリケーションや試合状態を作らない。Vue.jsの共通部品と共通APIクライアントを利用者別画面から使用する。
 
 ### ディレクトリとAPI・FRONTの分離
 
-**決定済み**
+**決定済み（2026年8月22日改訂）**
 
-- アプリケーション全体はCakePHP 5の標準ディレクトリ構成に従い、CakePHPプロジェクトを`app/`に配置する。
+以前は「FRONTとAPIを同一CakePHPアプリケーションとして配備し、別デプロイ単位への分割は行わない」としていたが、これは実際の意図と異なっていたため訂正する。FRONTとAPIは同一リポジトリで管理しつつ、ソース・依存関係・ビルド・配備は分離する。
+
 - ブラウザ画面を`FRONT`、JSONを入出力するバックエンドインターフェースを`API`と呼ぶ。
-- FRONTのURLは`/`、`/operator`、`/marker`、`/player`、`/admin`等の利用者別URLとする。
-- APIのURLは`/api/v1/...`とし、URLへバージョンを含める。API Controllerは`App\\Controller\\Api\\V1`名前空間へ配置する。
-- APIはCakePHPの自動フォールバックルートへ依存せず、エンドポイント実装時にHTTPメソッドを含むルートを明示する。
-- Vue.jsは`resources/js/front`を画面のエントリーポイント、`resources/js/api`をAPIクライアント、`resources/js/shared`を画面とAPIクライアントで共有する定数・型・補助処理の配置先とする。
-- Vueの画面は利用者区分ごとに`views/public`、`views/operator`、`views/marker`、`views/player`、`views/admin`へ分ける。複数区分で使用するUIは`components/common`、画面枠は`components/layout`へ配置する。
-- API Controllerのテストは、本体と対応する`tests/TestCase/Controller/Api/V1`へ配置する。
+- **API**: `app/`にCakePHP 5の標準ディレクトリ構成でプロジェクトを配置する。CakePHPは`/api/v1/...`のJSON APIのみを提供し、HTML画面は描画しない（CakePHP自身の診断・エラーページを除く）。URLへバージョンを含め、API Controllerは`App\Controller\Api\V1`名前空間、`app/src/Controller/Api/V1`へ配置する。APIはCakePHPの自動フォールバックルートへ依存せず、エンドポイント実装時にHTTPメソッドを含むルートを明示する。
+- **FRONT**: リポジトリ直下`frontend/`に、Node.js/Viteで独立したVue.jsプロジェクトを配置する（`app/`のComposer依存とは別管理）。`frontend/src/api`をAPIクライアント、`frontend/src/router`・`frontend/src/stores`・`frontend/src/views`をそれぞれvue-router・Pinia・画面コンポーネントの配置先とする。Vueの画面は利用者区分ごとに`views/public`、`views/operator`、`views/marker`、`views/player`、`views/admin`へ分ける。複数区分で使用するUIは`components/common`、画面枠は`components/layout`へ配置する。
+- **配備**: 本番は`platform.s-nick.com`（FRONT、Viteビルド成果物の静的配信）と`api.s-nick.com`（API、CakePHP）のサブドメイン分離を前提とする。両者は同じ登録可能ドメイン（`s-nick.com`）のサブドメイン同士のため、セッションCookieの`Domain`属性を`.s-nick.com`に設定すれば`SameSite=Lax`のまま共有できる。APIはCORSで許可オリジンを明示的に絞り込む。
+- API Controllerのテストは、本体と対応する`app/tests/TestCase/Controller/Api/V1`へ配置する。
 
 ```text
-app/
-├─ config/
-│  └─ routes.php
-├─ src/
-│  ├─ Controller/
-│  │  ├─ Api/V1/              # JSON API Controller
-│  │  └─ ...                   # FRONT用Controller
-│  ├─ Model/                   # CakePHP Entity・Table
-│  └─ ...                      # その他のCakePHP標準配置
-├─ templates/                  # CakePHP FRONTテンプレート
-├─ resources/js/
-│  ├─ api/                     # APIクライアント
-│  ├─ front/
-│  │  ├─ components/
-│  │  │  ├─ common/
-│  │  │  └─ layout/
-│  │  ├─ composables/
-│  │  ├─ router/
-│  │  ├─ stores/
-│  │  ├─ views/
-│  │  │  ├─ public/
-│  │  │  ├─ operator/
-│  │  │  ├─ marker/
-│  │  │  ├─ player/
-│  │  │  └─ admin/
-│  │  ├─ App.vue
-│  │  └─ main.js
-│  └─ shared/                  # 共通定数・型・補助処理
-├─ tests/TestCase/Controller/
-│  └─ Api/V1/                 # API Controllerテスト
-└─ webroot/build/              # Vite生成物（直接編集しない）
+（リポジトリ直下）
+├─ app/                        # API（CakePHP）
+│  ├─ config/
+│  │  └─ routes.php
+│  ├─ src/
+│  │  ├─ Controller/
+│  │  │  └─ Api/V1/            # JSON API Controller
+│  │  ├─ Model/                # CakePHP Entity・Table
+│  │  └─ ...                   # その他のCakePHP標準配置
+│  ├─ templates/                # CakePHP自身の診断・エラーページのみ
+│  └─ tests/TestCase/Controller/
+│     └─ Api/V1/               # API Controllerテスト
+└─ frontend/                    # FRONT（Vue.js、Node.js/Viteで独立ビルド）
+   ├─ package.json
+   ├─ vite.config.js
+   └─ src/
+      ├─ api/                   # APIクライアント
+      ├─ router/
+      ├─ stores/
+      ├─ components/
+      │  ├─ common/
+      │  └─ layout/
+      └─ views/
+         ├─ public/
+         ├─ operator/
+         ├─ marker/
+         ├─ player/
+         └─ admin/
 ```
 
-FRONTとAPIはソースとURLの責務を分離するが、初期段階では同一CakePHPアプリケーションとして配備する。別ドメイン、別リポジトリ、別デプロイ単位への分割は行わない。
+初期段階でも別リポジトリへの分割は行わない（同一リポジトリで管理する）が、ソース・ビルド・配備単位はFRONTとAPIで分離する。
 
 ### 本番データベース接続
 

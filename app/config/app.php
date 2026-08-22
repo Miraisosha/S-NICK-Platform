@@ -456,6 +456,37 @@ return [
      */
     'Session' => [
         'defaults' => 'php',
+        // In production FRONT (platform.s-nick.com) and API (api.s-nick.com)
+        // are separate subdomains of the same registrable domain; setting
+        // the cookie domain to the shared parent lets the session cookie
+        // reach the API from pages served by FRONT while staying
+        // SameSite=Lax (subdomains of one site are not cross-site).
+        // Left unset locally, where FRONT and API share the same host.
+        'ini' => array_filter([
+            'session.cookie_domain' => env('SESSION_COOKIE_DOMAIN', null),
+            'session.cookie_samesite' => 'Lax',
+        ]),
+    ],
+
+    /*
+     * Allowed origins for the separately-deployed FRONT (see
+     * src/Middleware/CorsMiddleware.php, applied to the `/api` scope only).
+     * Comma-separated in the env var; defaults to the local Vite dev server.
+     */
+    'Cors' => [
+        'allowedOrigins' => array_filter(array_map(
+            'trim',
+            explode(',', (string)env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')),
+        )),
+    ],
+
+    /*
+     * Base URL of the FRONT app, used to build links that must point at a
+     * real browser page rather than a JSON endpoint (e.g. the email
+     * verification and password reset links in AuthMailer).
+     */
+    'Frontend' => [
+        'baseUrl' => rtrim((string)env('FRONTEND_BASE_URL', 'http://localhost:5173'), '/'),
     ],
 
     /**

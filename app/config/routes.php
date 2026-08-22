@@ -88,19 +88,29 @@ return function (RouteBuilder $routes): void {
         $builder->fallbacks();
     });
 
-    /*
-     * If you need a different set of middleware or none at all,
-     * open new scope and define routes there.
-     *
-     * ```
-     * $routes->scope('/api', function (RouteBuilder $builder): void {
-     *     // No $builder->applyMiddleware() here.
-     *
-     *     // Parse specified extensions from URLs
-     *     // $builder->setExtensions(['json', 'xml']);
-     *
-     *     // Connect API actions here.
-     * });
-     * ```
-     */
+    // /api/v1/*: JSON API for the separately-deployed FRONT. Every action is
+    // connected explicitly with its HTTP method per
+    // docs/specifications/010_SystemArchitecture.md ("APIはCakePHPの自動
+    // フォールバックルートへ依存せず...") rather than relying on fallbacks().
+    $routes->scope('/api/v1', function (RouteBuilder $builder): void {
+        $builder->setRouteClass(DashedRoute::class);
+
+        $builder->post('/users/register', ['controller' => 'Users', 'action' => 'register', 'prefix' => 'Api/V1']);
+        $builder->post(
+            '/users/resend-verification',
+            ['controller' => 'Users', 'action' => 'resendVerification', 'prefix' => 'Api/V1'],
+        );
+        $builder->post('/users/verify-email', ['controller' => 'Users', 'action' => 'verifyEmail', 'prefix' => 'Api/V1']);
+        $builder->post('/users/login', ['controller' => 'Users', 'action' => 'login', 'prefix' => 'Api/V1']);
+        $builder->post('/users/logout', ['controller' => 'Users', 'action' => 'logout', 'prefix' => 'Api/V1']);
+        $builder->get('/users/me', ['controller' => 'Users', 'action' => 'me', 'prefix' => 'Api/V1']);
+        $builder->post(
+            '/users/forgot-password',
+            ['controller' => 'Users', 'action' => 'forgotPassword', 'prefix' => 'Api/V1'],
+        );
+        $builder->post(
+            '/users/reset-password',
+            ['controller' => 'Users', 'action' => 'resetPassword', 'prefix' => 'Api/V1'],
+        );
+    });
 };

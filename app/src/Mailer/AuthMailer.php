@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace App\Mailer;
 
 use App\Model\Entity\User;
+use Cake\Core\Configure;
 use Cake\Mailer\Mailer;
-use Cake\Routing\Router;
 
 /**
  * Sends the SCR-OPR-211/213 account emails: registration email confirmation
@@ -22,11 +22,7 @@ class AuthMailer extends Mailer
      */
     public function verificationEmail(User $user, string $rawToken): static
     {
-        $url = Router::url([
-            'controller' => 'Users',
-            'action' => 'verifyEmail',
-            '?' => ['token' => $rawToken],
-        ], true);
+        $url = $this->frontendUrl('/verify-email', $rawToken);
 
         $this->setTo($user->email)
             ->setSubject(__('【Squash Platform】メールアドレスの確認'))
@@ -43,11 +39,7 @@ class AuthMailer extends Mailer
      */
     public function passwordResetEmail(User $user, string $rawToken): static
     {
-        $url = Router::url([
-            'controller' => 'Users',
-            'action' => 'resetPassword',
-            '?' => ['token' => $rawToken],
-        ], true);
+        $url = $this->frontendUrl('/reset-password', $rawToken);
 
         $this->setTo($user->email)
             ->setSubject(__('【Squash Platform】パスワード再設定'))
@@ -55,5 +47,19 @@ class AuthMailer extends Mailer
         $this->viewBuilder()->setTemplate('password_reset');
 
         return $this;
+    }
+
+    /**
+     * Builds a link into the separately-deployed FRONT app (Configure
+     * `Frontend.baseUrl`) rather than a CakePHP/API route: these links are
+     * opened directly from an email client, and FRONT is the domain users
+     * expect to land on (SCR-OPR-211/213 assume a browser page, not a raw
+     * JSON endpoint).
+     */
+    private function frontendUrl(string $path, string $rawToken): string
+    {
+        $baseUrl = (string)Configure::read('Frontend.baseUrl');
+
+        return $baseUrl . $path . '?token=' . rawurlencode($rawToken);
     }
 }

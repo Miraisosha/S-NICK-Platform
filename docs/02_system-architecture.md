@@ -19,9 +19,9 @@ Google Maps PlatformのMap Tiles APIをGoogle背景地図として使用し、�
 
 ## 2. 論理構成
 
-初期構成は、CakePHPバックエンド1つ、MySQLデータベース1つからなる単一アプリケーションとします。`public`、`operator`、`marker`、`player`、`admin`は利用者別のURL・画面・権限区分であり、別々の業務データや試合状態を持つ独立システムではありません。
+バックエンドはCakePHP1つ、MySQLデータベース1つからなる単一APIアプリケーションとします。`public`、`operator`、`marker`、`player`、`admin`は利用者別のURL・画面・権限区分であり、別々の業務データや試合状態を持つ独立システムではありません。
 
-ディレクトリはCakePHP 5の標準構成に従います。ブラウザ画面（FRONT）とJSON APIは責務とURLを分離し、FRONTは利用者別URL、APIは`/api/v1/...`を使用します。API Controllerは`src/Controller/Api/V1`、Vue画面は`resources/js/front`、APIクライアントは`resources/js/api`へ配置します。初期段階ではFRONTとAPIを別アプリケーションには分割せず、同一CakePHPアプリケーションとして配備します。詳細な配置規約は[システムアーキテクチャ仕様](specifications/010_SystemArchitecture.md#ディレクトリとapifrontの分離)を正本とします。
+FRONT（ブラウザ画面、Vue.js）とAPI（JSON、CakePHP）は同一リポジトリで管理しつつ、ソース・ビルド・配備を分離します。APIはCakePHPプロジェクトとして`app/`に配置し、`/api/v1/...`のJSON APIのみを提供します（API Controllerは`app/src/Controller/Api/V1`）。FRONTはリポジトリ直下の`frontend/`にNode.js/Viteで独立したVue.jsプロジェクトとして配置し、Node.jsでコンパイル・最適化した静的ファイルとして配備します。本番では`platform.s-nick.com`（FRONT）と`api.s-nick.com`（API）のサブドメイン分離を前提とし、CORSとセッションCookieの共有ドメイン設定（`.s-nick.com`）でAPI呼び出しを許可します。詳細な配置規約は[システムアーキテクチャ仕様](specifications/010_SystemArchitecture.md#ディレクトリとapifrontの分離)を正本とします。
 
 ```mermaid
 flowchart LR

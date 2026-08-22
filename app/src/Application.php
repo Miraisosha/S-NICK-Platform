@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 namespace App;
 
+use App\Middleware\CorsMiddleware;
 use App\Middleware\HostHeaderMiddleware;
 use Authentication\AuthenticationService;
 use Authentication\AuthenticationServiceInterface;
@@ -78,6 +79,12 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             // the incoming Host header against it.
             ->add(new HostHeaderMiddleware())
 
+            // CORS for the separately-deployed FRONT calling the /api/v1/*
+            // JSON API (see src/Middleware/CorsMiddleware.php). Placed
+            // before routing so an OPTIONS preflight is answered even
+            // though it never matches a connected route.
+            ->add(new CorsMiddleware())
+
             // Handle plugin/theme assets like CakePHP normally does.
             ->add(new AssetMiddleware([
                 'cacheTime' => Configure::read('Asset.cacheTime'),
@@ -100,9 +107,21 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
 
             // Cross Site Request Forgery (CSRF) Protection Middleware
             // https://book.cakephp.org/5/en/security/csrf.html#cross-site-request-forgery-csrf-middleware
-            ->add(new CsrfProtectionMiddleware([
-                'httponly' => true,
-            ]));
+            //
+            // The /api/v1/* JSON API is exempt: it has no HTML forms to
+            // carry a CSRF token, and is protected instead by the
+            // CorsMiddleware's strict origin allow-list together with
+            // SameSite=Lax session cookies (see docs/specifications/
+            // 010_SystemArchitecture.md and the FRONT/API migration plan).
+            ->add(
+                (new CsrfProtectionMiddleware(['httponly' => true]))
+                    ->skipCheckCallback(
+                        fn(ServerRequestInterface $request): bool => str_starts_with(
+                            $request->getUri()->getPath(),
+                            '/api/',
+                        ),
+                    ),
+            );
 
         return $middlewareQueue;
     }
@@ -168,14 +187,33 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             ],
         ];
 
+        $formFields = [
+            'username' => 'email',
+            'password' => 'password',
+        ];
+
         $service->loadAuthenticator('Authentication.Session');
-        $service->loadAuthenticator('Authentication.Form', [
+
+        // Two Form authenticator instances, one per login endpoint.
+        // FormAuthenticator's `loginUrl` only ever checks a single URL
+        // (Authentication\UrlChecker\DefaultUrlChecker::check() passes it
+        // straight to Router::url() as one route/URL, not a list to try in
+        // turn - the "or an array of URLs" in its docblock means an
+        // array-style route, not multiple alternatives) - so both the HTML
+        // (App\Controller\UsersController) and JSON API
+        // (App\Controller\Api\V1\UsersController) login actions need their
+        // own authenticator instance rather than sharing one.
+        $service->loadAuthenticator('Form', [
+            'className' => 'Authentication.Form',
             'identifier' => $passwordIdentifier,
             'loginUrl' => '/users/login',
-            'fields' => [
-                'username' => 'email',
-                'password' => 'password',
-            ],
+            'fields' => $formFields,
+        ]);
+        $service->loadAuthenticator('ApiForm', [
+            'className' => 'Authentication.Form',
+            'identifier' => $passwordIdentifier,
+            'loginUrl' => '/api/v1/users/login',
+            'fields' => $formFields,
         ]);
 
         return $service;
