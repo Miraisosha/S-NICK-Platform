@@ -96,14 +96,22 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             // See https://github.com/CakeDC/cakephp-cached-routing
             ->add(new RoutingMiddleware($this))
 
+            // Parse various types of encoded request bodies so that they are
+            // available as array through $request->getData().
+            // https://book.cakephp.org/5/en/controllers/middleware.html#body-parser-middleware
+            //
+            // Must run before AuthenticationMiddleware: FormAuthenticator
+            // reads credentials via $request->getData(), which for a JSON
+            // body is only populated once this middleware has parsed it.
+            // HTML logins (application/x-www-form-urlencoded) worked even
+            // with the reversed order because PHP itself populates $_POST
+            // for that content type - only the JSON API login was broken by
+            // the original skeleton ordering.
+            ->add(new BodyParserMiddleware())
+
             // Adds identification/authentication information to the request.
             // https://book.cakephp.org/authentication/4/en/index.html
             ->add(new AuthenticationMiddleware($this))
-
-            // Parse various types of encoded request bodies so that they are
-            // available as array through $request->getData()
-            // https://book.cakephp.org/5/en/controllers/middleware.html#body-parser-middleware
-            ->add(new BodyParserMiddleware())
 
             // Cross Site Request Forgery (CSRF) Protection Middleware
             // https://book.cakephp.org/5/en/security/csrf.html#cross-site-request-forgery-csrf-middleware

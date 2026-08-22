@@ -147,6 +147,39 @@ class UsersControllerTest extends TestCase
         $this->assertSame($email, $body['data']['email']);
     }
 
+    /**
+     * Regression test: the real Vue FRONT sends `Content-Type: application/json`
+     * bodies (see frontend/src/api/client.js), unlike the other login test above
+     * which - like every other test in this class - relies on IntegrationTestTrait's
+     * default of encoding array data as `application/x-www-form-urlencoded`. That
+     * default meant no test here ever exercised a genuine JSON request body, which
+     * is exactly the gap that let a middleware-ordering bug slip through: with
+     * `AuthenticationMiddleware` queued before `BodyParserMiddleware` (the
+     * unmodified CakePHP skeleton order - see App\Application::middleware()),
+     * `FormAuthenticator` read `$request->getData()` before the JSON body had been
+     * parsed into it, so every JSON-bodied login request failed identification and
+     * returned 401 even with correct credentials. Form-urlencoded logins never
+     * noticed because PHP itself populates `$_POST` for that content type,
+     * independent of BodyParserMiddleware. Confirmed against the real frontend via
+     * manual curl/browser testing before the fix (BodyParserMiddleware now runs
+     * before AuthenticationMiddleware) and after.
+     */
+    public function testLoginWithJsonBodyReturnsUserAndPersistsIdentity(): void
+    {
+        $email = 'api-login-json-' . bin2hex(random_bytes(4)) . '@example.com';
+        $this->makeVerifiedUser($email);
+
+        $this->configRequest([
+            'environment' => ['CONTENT_TYPE' => 'application/json'],
+            'input' => json_encode(['email' => $email, 'password' => 'Xk7!qpLm']),
+        ]);
+        $this->post('/api/v1/users/login');
+
+        $this->assertResponseCode(200);
+        $body = json_decode((string)$this->_response->getBody(), true);
+        $this->assertSame($email, $body['data']['email']);
+    }
+
     public function testLoginWithWrongPasswordReturns401WithGenericMessage(): void
     {
         $email = 'api-wrongpw-' . bin2hex(random_bytes(4)) . '@example.com';
