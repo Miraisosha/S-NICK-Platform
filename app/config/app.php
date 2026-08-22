@@ -4,7 +4,7 @@ use Cake\Cache\Engine\FileEngine;
 use Cake\Database\Connection;
 use Cake\Database\Driver\Mysql;
 use Cake\Log\Engine\FileLog;
-use Cake\Mailer\Transport\MailTransport;
+use Cake\Mailer\Transport\SmtpTransport;
 use function Cake\Core\env;
 
 return [
@@ -249,19 +249,27 @@ return [
      */
     'EmailTransport' => [
         'default' => [
-            'className' => MailTransport::class,
+            'className' => SmtpTransport::class,
             /*
-             * The keys host, port, timeout, username, password, client and tls
-             * are used in SMTP transports
+             * SCR-OPR-215 (docs/specifications/200_Operator.md): production SMTP is
+             * お名前.com's mail71.onamae.ne.jp:465 over implicit SSL/TLS (hence the
+             * `ssl://` host prefix, which Cake\Network\Socket strips and passes to
+             * stream_socket_client - 'tls' stays false because that flag means
+             * STARTTLS-after-connect, which port 465/implicit-SSL doesn't use).
+             * The password is deliberately absent from every default here: it must
+             * come from `config/app_local.php` created directly on the production
+             * server (see docs/08_deployment.md "サーバー側の初回準備"), never from
+             * this file or from GitHub Actions.
+             *
+             * Local dev overrides all of this at once via EMAIL_TRANSPORT_DEFAULT_URL
+             * (see compose.yaml: "debug://", captured by DebugKit's Mail panel
+             * instead of actually connecting anywhere).
              */
-            'host' => 'localhost',
-            'port' => 25,
+            'host' => env('EMAIL_TRANSPORT_DEFAULT_HOST', 'ssl://mail71.onamae.ne.jp'),
+            'port' => (int)env('EMAIL_TRANSPORT_DEFAULT_PORT', 465),
             'timeout' => 30,
-            /*
-             * It is recommended to set these options through your environment or app_local.php
-             */
-            //'username' => null,
-            //'password' => null,
+            'username' => env('EMAIL_TRANSPORT_DEFAULT_USERNAME', 'info@s-nick.com'),
+            'password' => env('EMAIL_TRANSPORT_DEFAULT_PASSWORD', null),
             'client' => null,
             'tls' => false,
             'url' => env('EMAIL_TRANSPORT_DEFAULT_URL', null),
@@ -280,7 +288,7 @@ return [
     'Email' => [
         'default' => [
             'transport' => 'default',
-            'from' => 'you@localhost',
+            'from' => env('EMAIL_TRANSPORT_DEFAULT_USERNAME', 'info@s-nick.com'),
             /*
              * Will by default be set to config value of App.encoding, if that exists otherwise to UTF-8.
              */

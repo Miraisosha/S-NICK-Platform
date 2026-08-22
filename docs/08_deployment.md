@@ -49,7 +49,18 @@ GitHubリポジトリのSettings → Environmentsで`production`を作成し、�
 
 1. CakePHPアプリケーションの配置先を作成する。
 2. 配置先の`webroot`を`platform.s-nick.com`のドキュメントルートに設定する。
-3. 配置先の`config/app_local.php`へ本番データベース等の環境別設定を作成する。
+3. 配置先の`config/app_local.php`へ本番データベース等の環境別設定を作成する。SMTP（SCR-OPR-215、`mail71.onamae.ne.jp:465`）はホスト・ポート・送信元アドレスを`app/config/app.php`側に既定値として持たせているため、`app_local.php`にはパスワードだけを書けばよい。
+
+   ```php
+   <?php
+   return [
+       'EmailTransport' => [
+           'default' => [
+               'password' => 'ここに実際のSMTPパスワード',
+           ],
+       ],
+   ];
+   ```
 4. 配置先直下に空の`.snick-platform-deploy-target`を作成する。
 5. `logs`と`tmp`をWebサーバーから書き込み可能にする。
 
