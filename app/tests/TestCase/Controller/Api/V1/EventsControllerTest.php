@@ -202,4 +202,84 @@ class EventsControllerTest extends TestCase
         $body = json_decode((string)$this->_response->getBody(), true);
         $this->assertSame('Managed Rename', $body['data']['event']['name']);
     }
+
+    public function testAddAcceptsBrandingFields(): void
+    {
+        $this->ensureRole('event_owner', 'イベント所有者');
+        $this->loginAsUser($this->makeVerifiedUser());
+
+        $this->jsonRequest($this->samplePayload([
+            'name_en' => 'S-NICK OPEN 2026',
+            'slug' => 's-nick-open-2026',
+            'organizer' => 'S-NICK',
+        ]));
+        $this->post('/api/v1/events');
+
+        $this->assertResponseCode(201);
+        $body = json_decode((string)$this->_response->getBody(), true);
+        $this->assertSame('S-NICK OPEN 2026', $body['data']['event']['name_en']);
+        $this->assertSame('s-nick-open-2026', $body['data']['event']['slug']);
+        $this->assertSame('S-NICK', $body['data']['event']['organizer']);
+    }
+
+    public function testAddRejectsInvalidSlugFormat(): void
+    {
+        $this->ensureRole('event_owner', 'イベント所有者');
+        $this->loginAsUser($this->makeVerifiedUser());
+
+        $this->jsonRequest($this->samplePayload(['slug' => 'has spaces/slash']));
+        $this->post('/api/v1/events');
+
+        $this->assertResponseCode(422);
+        $body = json_decode((string)$this->_response->getBody(), true);
+        $this->assertArrayHasKey('slug', $body['error']['fields']);
+    }
+
+    public function testAddRejectsDuplicateSlug(): void
+    {
+        $this->ensureRole('event_owner', 'イベント所有者');
+        $this->loginAsUser($this->makeVerifiedUser());
+
+        $this->jsonRequest($this->samplePayload(['slug' => 'dup-slug-test']));
+        $this->post('/api/v1/events');
+        $this->assertResponseCode(201);
+
+        $this->jsonRequest($this->samplePayload(['slug' => 'dup-slug-test']));
+        $this->post('/api/v1/events');
+
+        $this->assertResponseCode(422);
+        $body = json_decode((string)$this->_response->getBody(), true);
+        $this->assertArrayHasKey('slug', $body['error']['fields']);
+    }
+
+    public function testDeleteSoftDeletesAndRemovesFromIndex(): void
+    {
+        $this->ensureRole('event_owner', 'イベント所有者');
+        $ownerId = $this->makeVerifiedUser();
+        $this->loginAsUser($ownerId);
+        $this->jsonRequest($this->samplePayload());
+        $this->post('/api/v1/events');
+        $eventId = json_decode((string)$this->_response->getBody(), true)['data']['event']['id'];
+
+        $this->delete('/api/v1/events/' . $eventId);
+        $this->assertResponseCode(200);
+
+        $this->get('/api/v1/events/' . $eventId);
+        $this->assertResponseCode(404);
+    }
+
+    public function testOtherUserCannotDeleteEvent(): void
+    {
+        $this->ensureRole('event_owner', 'イベント所有者');
+        $ownerId = $this->makeVerifiedUser();
+        $this->loginAsUser($ownerId);
+        $this->jsonRequest($this->samplePayload());
+        $this->post('/api/v1/events');
+        $eventId = json_decode((string)$this->_response->getBody(), true)['data']['event']['id'];
+
+        $this->loginAsUser($this->makeVerifiedUser());
+        $this->delete('/api/v1/events/' . $eventId);
+
+        $this->assertResponseCode(404);
+    }
 }

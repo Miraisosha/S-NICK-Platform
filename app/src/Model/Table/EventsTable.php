@@ -53,6 +53,25 @@ class EventsTable extends Table
             ->notEmptyString('name');
 
         $validator
+            ->scalar('name_en')
+            ->maxLength('name_en', 255)
+            ->allowEmptyString('name_en');
+
+        $validator
+            ->scalar('slug')
+            ->maxLength('slug', 64)
+            ->add('slug', 'format', [
+                'rule' => ['custom', '/^[A-Za-z0-9-]+$/'],
+                'message' => __('大会スラッグは半角英数字とハイフンのみ使用できます。'),
+            ])
+            ->allowEmptyString('slug');
+
+        $validator
+            ->scalar('organizer')
+            ->maxLength('organizer', 255)
+            ->allowEmptyString('organizer');
+
+        $validator
             ->scalar('subtitle')
             ->maxLength('subtitle', 255)
             ->allowEmptyString('subtitle');
@@ -109,6 +128,9 @@ class EventsTable extends Table
     public function buildRules(RulesChecker $rules): RulesChecker
     {
         $rules->add($rules->existsIn('owner_user_id', 'Owners'), 'ownerExists');
+        $rules->add($rules->isUnique(['slug'], __('この大会スラッグは既に使用されています。')), 'slugUnique', [
+            'allowNullableNulls' => true,
+        ]);
 
         return $rules;
     }

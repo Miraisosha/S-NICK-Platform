@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import * as adminAuthApi from '../api/adminAuth';
-import { ApiError } from '../api/client';
+import * as adminAuthApi from '@/api/adminAuth';
+import { ApiError } from '@/api/client';
 
 export const useAdminAuthStore = defineStore('adminAuth', {
   state: () => ({

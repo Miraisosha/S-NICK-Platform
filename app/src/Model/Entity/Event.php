@@ -12,6 +12,8 @@ use Cake\ORM\Entity;
  * @property int $id
  * @property int $owner_user_id
  * @property string $name
+ * @property string|null $name_en
+ * @property string|null $slug
  * @property string|null $subtitle
  * @property \Cake\I18n\DateTime $start_at
  * @property \Cake\I18n\DateTime $end_at
@@ -21,6 +23,8 @@ use Cake\ORM\Entity;
  * @property string $publication_status
  * @property string $default_locale
  * @property string|null $contact_email
+ * @property string|null $organizer
+ * @property string|null $logo
  * @property string|null $contact_info
  * @property string|null $description
  * @property string|null $notes
@@ -39,6 +43,8 @@ class Event extends Entity
         'id' => false,
         'owner_user_id' => false,
         'name' => true,
+        'name_en' => true,
+        'slug' => true,
         'subtitle' => true,
         'start_at' => true,
         'end_at' => true,
@@ -48,6 +54,8 @@ class Event extends Entity
         'publication_status' => false,
         'default_locale' => true,
         'contact_email' => true,
+        'organizer' => true,
+        'logo' => false,
         'contact_info' => true,
         'description' => true,
         'notes' => true,

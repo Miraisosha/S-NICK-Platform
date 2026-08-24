@@ -82,10 +82,13 @@
 
 .auth-field input[type="email"],
 .auth-field input[type="password"],
-.auth-field input[type="text"] {
+.auth-field input[type="text"],
+.auth-field input[type="datetime-local"],
+.auth-field textarea {
   width: 100%;
   min-height: 2.9rem;
   font-size: 0.95rem;
+  font-family: inherit;
   border: 1px solid #e3e5e9;
   background: #fafafb;
   border-radius: 10px;

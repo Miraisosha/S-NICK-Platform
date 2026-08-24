@@ -158,6 +158,10 @@ return function (RouteBuilder $routes): void {
             '/events/{id}',
             ['controller' => 'Events', 'action' => 'edit', 'prefix' => 'Api/V1'],
         )->setPass(['id']);
+        $builder->delete(
+            '/events/{id}',
+            ['controller' => 'Events', 'action' => 'delete', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
 
         // SCR-OPR-2405 カテゴリ管理 (nested under an event, see EventsCategoriesController).
         $builder->get(

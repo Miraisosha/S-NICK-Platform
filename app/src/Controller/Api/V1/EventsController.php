@@ -11,8 +11,10 @@ use App\Model\Table\EventsTable;
 use App\Model\Table\EventStaffRolesTable;
 use App\Model\Table\EventStaffTable;
 use App\Model\Table\RolesTable;
+use App\Service\Event\EventLogoService;
 use App\Service\Event\EventService;
 use Authentication\IdentityInterface;
+use Cake\Core\Exception\CakeException;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Http\Response;
 use Cake\I18n\DateTime;
@@ -81,11 +83,22 @@ class EventsController extends AppController
 
         try {
             $event = $this->eventService()->create(
-                (array)$this->request->getData(),
+                $this->dataWithoutLogo(),
                 (int)$identity->getIdentifier(),
             );
         } catch (PersistenceFailedException $e) {
             return $this->validationError($e->getEntity()->getErrors());
+        }
+
+        $logoFile = $this->request->getUploadedFile('logo');
+        if ($logoFile !== null && $logoFile->getError() !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $logoPath = $this->eventLogoService()->store($logoFile, $event->id, null);
+            } catch (CakeException $e) {
+                return $this->jsonError('invalid_logo', $e->getMessage(), 422);
+            }
+            $event->set('logo', $logoPath, ['guard' => false]);
+            $this->eventsTable()->saveOrFail($event);
         }
 
         return $this->json(['event' => $event], 201);
@@ -109,7 +122,7 @@ class EventsController extends AppController
             return $this->jsonError('not_found', __('イベントが見つかりません。'), 404);
         }
 
-        $event = $this->eventsTable()->patchEntity($event, (array)$this->request->getData());
+        $event = $this->eventsTable()->patchEntity($event, $this->dataWithoutLogo());
 
         if ($event->hasErrors()) {
             return $this->validationError($event->getErrors());
@@ -120,6 +133,49 @@ class EventsController extends AppController
         } catch (PersistenceFailedException $e) {
             return $this->validationError($e->getEntity()->getErrors());
         }
+
+        $logoFile = $this->request->getUploadedFile('logo');
+        if ($logoFile !== null && $logoFile->getError() !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $logoPath = $this->eventLogoService()->store($logoFile, $event->id, $event->logo);
+            } catch (CakeException $e) {
+                return $this->jsonError('invalid_logo', $e->getMessage(), 422);
+            }
+            $event->set('logo', $logoPath, ['guard' => false]);
+            $this->eventsTable()->saveOrFail($event);
+        } elseif ($this->request->getData('remove_logo')) {
+            if ($event->logo !== null) {
+                $this->eventLogoService()->delete($event->logo);
+            }
+            $event->set('logo', null, ['guard' => false]);
+            $this->eventsTable()->saveOrFail($event);
+        }
+
+        return $this->json(['event' => $event]);
+    }
+
+    /**
+     * Soft-deletes the event (SCR-OPR-2405 大会編集「削除する」).
+     *
+     * @param string|null $id Event id.
+     * @return \Cake\Http\Response
+     */
+    public function delete(?string $id = null): Response
+    {
+        $this->request->allowMethod(['post', 'delete']);
+
+        $identity = $this->requireIdentity();
+        if ($identity === null) {
+            return $this->unauthenticated();
+        }
+
+        $event = $this->findManageableEvent($id, (int)$identity->getIdentifier());
+        if ($event === null) {
+            return $this->jsonError('not_found', __('イベントが見つかりません。'), 404);
+        }
+
+        $event->set('deleted_at', DateTime::now(), ['guard' => false]);
+        $this->eventsTable()->saveOrFail($event);
 
         return $this->json(['event' => $event]);
     }
@@ -321,6 +377,25 @@ class EventsController extends AppController
     }
 
     /**
+     * The request body, minus `logo` - a multipart request's `logo` field is
+     * the uploaded file itself (handled separately via
+     * `getUploadedFile('logo')` / EventLogoService), and passing that raw
+     * UploadedFile object into newEntity()/patchEntity() crashes CakePHP's
+     * marshaller, which tries to cast every value matching a table column
+     * to that column's type (here, a string) before the entity's
+     * `_accessible` guard is ever consulted.
+     *
+     * @return array<string, mixed>
+     */
+    private function dataWithoutLogo(): array
+    {
+        $data = (array)$this->request->getData();
+        unset($data['logo']);
+
+        return $data;
+    }
+
+    /**
      * @param array<string, mixed> $errors Validation errors from the entity.
      * @return \Cake\Http\Response
      */
@@ -356,6 +431,14 @@ class EventsController extends AppController
             $this->fetchEventStaffRolesTable(),
             $this->fetchRolesTable(),
         );
+    }
+
+    /**
+     * @return \App\Service\Event\EventLogoService
+     */
+    private function eventLogoService(): EventLogoService
+    {
+        return new EventLogoService();
     }
 
     /**

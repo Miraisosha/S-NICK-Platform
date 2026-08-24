@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import * as authApi from '../api/auth';
-import { ApiError } from '../api/client';
+import * as authApi from '@/api/auth';
+import { ApiError } from '@/api/client';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({

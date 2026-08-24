@@ -80,30 +80,32 @@ APIは `http://localhost:8080` で確認する（`.env`の`APP_PORT`を変更し
 
 ## フロントエンド（Vue.js）
 
-`frontend/`はAPI（`app/`）と別に管理するVueプロジェクトで、Viteの開発サーバーで動かす。ホストにNode.jsがある場合:
+`frontend/`はAPI（`app/`）と別に管理するVueプロジェクトで、利用者区分ごとに独立したアプリ（`frontend/src/apps/{app}/`、現時点では`operator`・`admin`）に分かれている。詳細は[システムアーキテクチャ仕様の「ディレクトリとAPI・FRONTの分離」](specifications/010_SystemArchitecture.md#ディレクトリとapifrontの分離)を参照する。Viteの開発サーバーは`--mode`でどのアプリを動かすか指定する（未指定だと`entries/{mode}/index.html`が見つからず起動時にエラーになる）。ホストにNode.jsがある場合:
 
 ```powershell
 cd frontend
-npm run dev
+npm run dev:operator
+# 別アプリを動かす場合はターミナルを分けて
+npm run dev:admin
 ```
 
-`http://localhost:5173` で確認する。Node.jsをホストに入れていない場合は`node`コンテナ経由で同じことができる。
+`http://localhost:5173` で確認する（`.env`の`FRONTEND_PORT`を変更した場合は、そのポートを使用する）。同時に1つの`--mode`しか動かせないため、operatorとadminを同時に確認したい場合はポートを分けて2つ起動する（例: `npm run dev:admin -- --port 5175`）。Node.jsをホストに入れていない場合は`node`コンテナ経由で同じことができる。
 
 ```powershell
 docker compose --profile tools up -d
-docker compose --profile tools exec node npm run dev -- --host
+docker compose --profile tools exec node npm run dev:operator -- --host
 ```
 
-FRONTはAPIへ`fetch(..., { credentials: 'include' })`でJSON呼び出しを行い、Cookieベースのセッションをそのまま使う（`frontend/src/api/client.js`）。APIはCORSで許可するオリジンとメールリンクの遷移先を`.env`の`FRONTEND_PORT`（既定`5173`）から`http://localhost:<FRONTEND_PORT>`として組み立てる（`compose.yaml`の`app`サービスの`CORS_ALLOWED_ORIGINS`/`FRONTEND_BASE_URL`）。Viteの開発サーバーのポートを変えた場合は、`.env`の`FRONTEND_PORT`も同じ値に変更し、`docker compose up -d`でAPIコンテナを再起動する。
+FRONTはAPIへ`fetch(..., { credentials: 'include' })`でJSON呼び出しを行い、Cookieベースのセッションをそのまま使う（`frontend/src/api/client.js`、全アプリ共有）。APIはCORSで許可するオリジンとメールリンクの遷移先を`.env`の`FRONTEND_PORT`（既定`5173`）から`http://localhost:<FRONTEND_PORT>`として組み立てる（`compose.yaml`の`app`サービスの`CORS_ALLOWED_ORIGINS`/`FRONTEND_BASE_URL`）。Viteの開発サーバーのポートを変えた場合は、`.env`の`FRONTEND_PORT`も同じ値に変更し、`docker compose up -d`でAPIコンテナを再起動する。
 
 確認メール・パスワード再設定メールのリンクも同じ`http://localhost:<FRONTEND_PORT>`を指す（`Frontend.baseUrl`設定）。メール本文はDebugKitのMailパネルで確認する（`compose.yaml`の`EMAIL_TRANSPORT_DEFAULT_URL: "debug://"`により実際には送信されない）。
 
-FRONTのビルド成果物（`frontend/dist/`）を確認する場合:
+FRONTのビルド成果物（`frontend/dist/{app}/`、アプリごとに別ディレクトリ）を確認する場合:
 
 ```powershell
 cd frontend
-npm run build
-npm run preview
+npm run build:operator
+npm run preview -- --mode operator
 ```
 
 ## テスト用アカウントの手動作成

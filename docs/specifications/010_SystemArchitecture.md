@@ -35,15 +35,22 @@ Docker Composeを使用し、PHP 8.5＋Apache、MySQL、Node.jsの開発環境�
 
 ### ディレクトリとAPI・FRONTの分離
 
-**決定済み（2026年8月22日改訂）**
+**決定済み（2026年8月24日改訂）**
 
-以前は「FRONTとAPIを同一CakePHPアプリケーションとして配備し、別デプロイ単位への分割は行わない」としていたが、これは実際の意図と異なっていたため訂正する。FRONTとAPIは同一リポジトリで管理しつつ、ソース・依存関係・ビルド・配備は分離する。
+以前は「FRONTとAPIを同一CakePHPアプリケーションとして配備し、別デプロイ単位への分割は行わない」としていたが、これは実際の意図と異なっていたため訂正する（2026年8月22日改訂）。FRONTとAPIは同一リポジトリで管理しつつ、ソース・依存関係・ビルド・配備は分離する。
+
+さらに、FRONTは単一のVue SPAではなく、利用者区分ごとに完全に独立したViteエントリー（＝別々のアプリ）へ分割する（2026年8月24日改訂）。各アプリは本番でサブドメインごとに独立配信することを前提とする。
 
 - ブラウザ画面を`FRONT`、JSONを入出力するバックエンドインターフェースを`API`と呼ぶ。
-- **API**: `app/`にCakePHP 5の標準ディレクトリ構成でプロジェクトを配置する。CakePHPは`/api/v1/...`のJSON APIのみを提供し、HTML画面は描画しない（CakePHP自身の診断・エラーページを除く）。URLへバージョンを含め、API Controllerは`App\Controller\Api\V1`名前空間、`app/src/Controller/Api/V1`へ配置する。APIはCakePHPの自動フォールバックルートへ依存せず、エンドポイント実装時にHTTPメソッドを含むルートを明示する。
-- **FRONT**: リポジトリ直下`frontend/`に、Node.js/Viteで独立したVue.jsプロジェクトを配置する（`app/`のComposer依存とは別管理）。`frontend/src/api`をAPIクライアント、`frontend/src/router`・`frontend/src/stores`・`frontend/src/views`をそれぞれvue-router・Pinia・画面コンポーネントの配置先とする。Vueの画面は利用者区分ごとに`views/public`、`views/operator`、`views/marker`、`views/player`、`views/admin`へ分ける。複数区分で使用するUIは`components/common`、画面枠は`components/layout`へ配置する。
-- **配備**: 本番は`platform.s-nick.com`（FRONT、Viteビルド成果物の静的配信）と`api.s-nick.com`（API、CakePHP）のサブドメイン分離を前提とする。両者は同じ登録可能ドメイン（`s-nick.com`）のサブドメイン同士のため、セッションCookieの`Domain`属性を`.s-nick.com`に設定すれば`SameSite=Lax`のまま共有できる。APIはCORSで許可オリジンを明示的に絞り込む。
-- API Controllerのテストは、本体と対応する`app/tests/TestCase/Controller/Api/V1`へ配置する。
+- **API**: `app/`にCakePHP 5の標準ディレクトリ構成でプロジェクトを配置する。CakePHPは`/api/v1/...`のJSON APIのみを提供し、HTML画面は描画しない（CakePHP自身の診断・エラーページを除く）。URLへバージョンを含め、API Controllerは`App\Controller\Api\V1`名前空間、`app/src/Controller/Api/V1`へ配置する。APIはCakePHPの自動フォールバックルートへ依存せず、エンドポイント実装時にHTTPメソッドを含むルートを明示する。API Controllerのテストは、本体と対応する`app/tests/TestCase/Controller/Api/V1`へ配置する。
+- **FRONT**: リポジトリ直下`frontend/`に、Node.js/Viteで独立したVue.jsプロジェクトを配置する（`app/`のComposer依存とは別管理）。
+  - 利用者区分ごとのアプリを`frontend/src/apps/{app}/`へ分ける（`home`＝公開ランディング、`operator`＝運営者管理画面、`entry`＝選手向けエントリー・登録、`player`＝選手向け画面、`marker`＝マーカー画面、`live`＝配信・OBSオーバーレイ、`display`＝観客表示画面、`admin`＝プラットフォーム管理者画面）。現時点で実装済みなのは`operator`と`admin`のみで、他は今後の実装時に同じ形で追加する。
+  - 各アプリは`views/`（画面）・`components/`（アプリ固有部品）・`router/routes.js`（そのアプリのURLと画面の対応）・`main.js`（Vueアプリのエントリーポイント）を持つ。
+  - 複数アプリで使うUI部品は`frontend/src/components/common/`、APIクライアントは`frontend/src/api/`、Piniaストアは`frontend/src/stores/`、Vue Composablesは`frontend/src/composables/`、汎用ユーティリティは`frontend/src/utils/`、画像・CSS等は`frontend/src/assets/`へ配置する（すべてのアプリから共有）。
+  - ルーティングの共通処理（`createRouter()`の初期化、ログイン等の共通ガード、スクロール制御）は`frontend/src/router/`（`createAppRouter.js`・`guards/`・`scrollBehavior.js`）に置き、各アプリの`main.js`がそれを使って自分のルートを組み立てる。個別のURL・画面の対応（どのアプリがどの`/path`を持つか）は各アプリの`router/routes.js`が持つ。
+  - 各アプリのHTMLエントリーは`frontend/entries/{app}/index.html`に置く（`frontend/src/apps/{app}/main.js`を読み込む）。ビルドは`vite build --mode {app}`のようにアプリ単位で実行し、成果物は`frontend/dist/{app}/`へ出力する（`frontend/package.json`の`build:operator`・`build:admin`等）。開発サーバーも同様に`vite --mode {app}`（`npm run dev:operator`等）で起動する。
+  - 各アプリ内部の画面遷移はVue RouterによるSPAとする。アプリ間の遷移（例: 運営者画面から管理者画面へ）は別ビルド・別配信のため通常のリンク遷移（フルリロード）になる。
+- **配備**: 本番は`platform.s-nick.com`（`home`等の公開FRONT）・`api.s-nick.com`（API、CakePHP）に加え、運営者・管理者等の各アプリも独立したサブドメイン（例: 案として`operator.platform.s-nick.com`、`admin.platform.s-nick.com`。確定次第この節を更新する）で配信する想定。いずれも同じ登録可能ドメイン（`s-nick.com`）のサブドメイン同士のため、セッションCookieの`Domain`属性を`.s-nick.com`に設定すれば`SameSite=Lax`のまま共有できる。APIはCORSで許可オリジンを明示的に絞り込む。
 
 ```text
 （リポジトリ直下）
@@ -61,22 +68,34 @@ Docker Composeを使用し、PHP 8.5＋Apache、MySQL、Node.jsの開発環境�
 └─ frontend/                    # FRONT（Vue.js、Node.js/Viteで独立ビルド）
    ├─ package.json
    ├─ vite.config.js
+   ├─ entries/                  # アプリごとのHTMLエントリー
+   │  ├─ operator/index.html
+   │  └─ admin/index.html       # （home/entry/player/marker/live/displayは未実装）
    └─ src/
-      ├─ api/                   # APIクライアント
-      ├─ router/
-      ├─ stores/
-      ├─ components/
-      │  ├─ common/
-      │  └─ layout/
-      └─ views/
-         ├─ public/
-         ├─ operator/
-         ├─ marker/
-         ├─ player/
-         └─ admin/
+      ├─ apps/                  # 利用者区分ごとに独立したアプリ
+      │  ├─ operator/
+      │  │  ├─ main.js
+      │  │  ├─ router/routes.js
+      │  │  ├─ views/
+      │  │  └─ components/
+      │  └─ admin/
+      │     ├─ main.js
+      │     ├─ router/routes.js
+      │     ├─ views/
+      │     └─ components/
+      ├─ router/                # 全アプリ共通のルーティング基盤
+      │  ├─ createAppRouter.js
+      │  ├─ guards/
+      │  └─ scrollBehavior.js
+      ├─ components/common/     # 複数アプリで使う共有UI部品
+      ├─ api/                   # 共有APIクライアント
+      ├─ stores/                # 共有Piniaストア
+      ├─ composables/           # 共有Vue Composables
+      ├─ utils/                 # 共有ユーティリティ
+      └─ assets/                # 共有CSS・画像
 ```
 
-初期段階でも別リポジトリへの分割は行わない（同一リポジトリで管理する）が、ソース・ビルド・配備単位はFRONTとAPIで分離する。
+初期段階でも別リポジトリへの分割は行わない（同一リポジトリで管理する）が、ソース・ビルド・配備単位はAPIと各FRONTアプリで分離する。
 
 ### 本番データベース接続
 
