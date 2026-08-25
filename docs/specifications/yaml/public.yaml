@@ -1,6 +1,6 @@
 version: "1.0-draft"
 role: public
-document: ../100_Public.md
+document: ../1000_public/README.md
 inherited_from: "パブリックダッシュボード仕様"
 
 functions:

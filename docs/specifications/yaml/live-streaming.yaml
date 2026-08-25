@@ -1,6 +1,6 @@
 version: "1.0-draft"
 domain: live_streaming
-document: ../../04_live-streaming.md
+document: ../9000_common/9702_live_streaming.md
 inherited_from: "YouTubeライブ配信設定"
 
 snick_stream_management:

@@ -1,66 +1,35 @@
-# Squash Platform Requirements v1.0
+# 機能仕様
 
 ## 位置づけ
 
-このディレクトリを、Squash Platform（日本語表記：スカッシュ　プラットフォーム）の要件・設計に関する正本（Single Source of Truth）とする。
-現時点で未確定の内容は推測で確定せず、`検討中` と明記する。
+`docs/specifications/`は、Squash Platformの利用者別・機能別要件を管理する。システム横断の技術設計は`docs/architecture/`、プロジェクト全体の方針とフェーズは上位の`docs/`資料を参照する。
 
-## 既存設計資料との関係
+## 番号体系
 
-旧称「S-NICK Platform」で作成された次の資料を、プロジェクト全体の方針・基本設計として参照する。
+| 番台 | グループ | 内容 |
+|---|---|---|
+| 1000 | [パブリック](1000_public/README.md) | 一般閲覧、イベント情報、ライブ、結果、問い合わせ送信 |
+| 2000 | [運営者](2000_operator/README.md) | 認証、大会準備、当日運営、問い合わせ管理 |
+| 3000 | [選手](3000_player/README.md) | イベント申込、履歴、プロフィール、マイページ |
+| 4000 | [管理者](4000_admin/README.md) | 施設、利用者、ランキング、監査、管理者アカウント |
+| 5000 | [マーカー](5000_marker/README.md) | 得点、判定、タイマー、表示、オフライン同期 |
+| 9000 | [共通](9000_common/README.md) | 利用者・権限、API、通知、UI、配信等の横断要件 |
+| 9900 | [将来構想](9900_future/README.md) | 導入時期を確定していない機能候補 |
 
-- [プロジェクト概要](../01_project-overview.md)
-- [システム構成](../02_system-architecture.md)
-- [サービス・業務領域計画](../03_service-domain-plan.md)
-- [ライブ配信](../04_live-streaming.md)
-- [ネットワーク・機材](../05_network-and-hardware.md)
-- [開発ロードマップ](../06_development-roadmap.md)
+既存の`SCR-PUB-*`、`SCR-OPR-*`、`SCR-MKR-*`、`SCR-PLY-*`、`SCR-ADM-*`および要件IDは変更しない。ファイル番号は文書整理番号であり、画面ID・要件IDとは別に管理する。
 
-役割分担は次のとおりとする。
+## 共通資産
 
-| 資料 | 役割 |
+| パス | 内容 |
 |---|---|
-| `docs/01`～`06` | 目的、全体構成、業務領域、配信・機材、ロードマップ |
-| `docs/specifications/` | 利用者、機能、画面、イベント、業務ルール、状態遷移 |
+| `yaml/` | 要件、状態遷移、配信等の機械可読表現 |
+| `images/` | 画面・OBS等の参考画像 |
+| `samples/` | 動作確認用の参考サンプル |
 
-両者に矛盾が見つかった場合は、勝手に一方へ合わせず、決定の経緯と影響範囲を確認してから修正する。
+## 更新原則
 
-## 設計階層
-
-要件は次の階層で整理する。
-
-1. 利用者（Chapter）
-2. 機能（Function）
-3. 画面（Screen）
-4. イベント（Event）
-5. 業務ルール（Business Rule）
-
-## ドキュメント一覧
-
-| ファイル | 内容 |
-|---|---|
-| [FunctionalIndex.md](FunctionalIndex.md) | 利用者別機能とフェーズ1～4のリリース範囲 |
-| [ScreenFlow.md](ScreenFlow.md) | 利用者別の入口と主要な画面遷移図 |
-| [DataModel.md](DataModel.md) | 大会・試合・マーカー・固定QRコードの概念ER設計 |
-| [ClassDesign.md](ClassDesign.md) | 大会運営・スケジュール・試合進行の概念クラス図と責務分担 |
-| [UiDesignGuide.md](UiDesignGuide.md) | Squash Platform共通の配色、文字、ボタン、角丸、余白、キャラクター使用方針 |
-| [000_SystemOverview.md](000_SystemOverview.md) | プロジェクトとシステムの概要 |
-| [010_SystemArchitecture.md](010_SystemArchitecture.md) | システム構成・技術構成 |
-| [020_UserRoles.md](020_UserRoles.md) | 利用者と権限 |
-| [100_Public.md](100_Public.md) | パブリック向け機能 |
-| [200_Operator.md](200_Operator.md) | 運営者向け機能 |
-| [300_Marker.md](300_Marker.md) | マーカー向け機能 |
-| [400_Player.md](400_Player.md) | 選手向け機能 |
-| [500_Admin.md](500_Admin.md) | 管理者向け機能 |
-| [600_CommonPlatform.md](600_CommonPlatform.md) | 共通基盤 |
-| [900_FuturePlan.md](900_FuturePlan.md) | 将来構想 |
-| [glossary.md](glossary.md) | 用語集 |
-| [yaml/requirements.yaml](yaml/requirements.yaml) | 要件構造の機械可読表現 |
-| [yaml/public.yaml](yaml/public.yaml) | パブリックダッシュボード・公開画面の機械可読表現 |
-| [yaml/marker.yaml](yaml/marker.yaml) | マーカー機能の機械可読表現 |
-| [yaml/live-streaming.yaml](yaml/live-streaming.yaml) | YouTube Live・OBS・コート別配信の機械可読表現 |
-| [yaml/state-machine.yaml](yaml/state-machine.yaml) | 試合状態遷移 |
-
-## 更新フロー
-
-相談 → Requirements更新 → レビュー → コミット → 実装 → 動作確認、の順で進める。
+- 各機能の詳細は対応する機能ファイルを正本とする。
+- グループの`README.md`は目的、導入フェーズおよび機能一覧を管理し、詳細を重複記載しない。
+- 「決定済み」「候補」「検討中」を区別する。
+- 複数グループへ関係する機能は、利用者ごとの画面を各グループに置き、共通の業務ルールを機能の所有グループで管理する。
+- イベント問い合わせはイベントに所属する機能とし、送信画面をパブリック、管理画面と共通業務ルールを運営者のイベント管理配下に置く。
