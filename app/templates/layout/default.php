@@ -14,7 +14,7 @@
  * @var \App\View\AppView $this
  */
 
-$cakeDescription = 'CakePHP: the rapid development php framework';
+$siteTitle = 'Squash Platform';
 ?>
 <!DOCTYPE html>
 <html>
@@ -22,12 +22,13 @@ $cakeDescription = 'CakePHP: the rapid development php framework';
     <?= $this->Html->charset() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>
-        <?= $cakeDescription ?>:
+        <?= $siteTitle ?>:
         <?= $this->fetch('title') ?>
     </title>
+    <link rel="icon" type="image/svg+xml" href="/img/squash-platform-logo.svg">
     <?= $this->Html->meta('icon') ?>
 
-    <?= $this->Html->css(['normalize.min', 'milligram.min', 'fonts', 'cake']) ?>
+    <?= $this->Html->css(['normalize.min', 'milligram.min', 'fonts', 'cake', 'site']) ?>
     <?= $this->Html->css('/build/assets/main.css') ?>
 
     <?= $this->fetch('meta') ?>
@@ -37,11 +38,10 @@ $cakeDescription = 'CakePHP: the rapid development php framework';
 <body>
     <nav class="top-nav">
         <div class="top-nav-title">
-            <a href="<?= $this->Url->build('/') ?>"><span>Cake</span>PHP</a>
-        </div>
-        <div class="top-nav-links">
-            <a target="_blank" rel="noopener" href="https://book.cakephp.org/5/">Documentation</a>
-            <a target="_blank" rel="noopener" href="https://api.cakephp.org/">API</a>
+            <a href="<?= $this->Url->build('/') ?>" class="top-nav-brand">
+                <?= $this->Html->image('squash-platform-logo.svg', ['alt' => $siteTitle, 'class' => 'top-nav-logo']) ?>
+                <span><?= $siteTitle ?></span>
+            </a>
         </div>
     </nav>
     <main class="main">
@@ -51,6 +51,9 @@ $cakeDescription = 'CakePHP: the rapid development php framework';
         </div>
     </main>
     <footer>
+        <?php if (empty($hideFooterCredit)): ?>
+        <p class="footer-credit">提供：株式会社未来創社</p>
+        <?php endif; ?>
     </footer>
     <?= $this->Html->script('/build/assets/app.js', ['type' => 'module']) ?>
 </body>

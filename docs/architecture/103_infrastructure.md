@@ -42,7 +42,7 @@ flowchart LR
 - `admin.squash-platform.com`
 - `api.squash-platform.com`
 
-DNSレコード、TLS証明書の方式、各FRONTのドキュメントルートおよびAPIの配置先は検討中である。CORSは許可するFRONTオリジンを環境別に完全一致で管理する。Cookie境界は[認証・権限](08_authentication.md)で管理する。
+DNSレコード、TLS証明書の方式、各FRONTのドキュメントルートおよびAPIの配置先は検討中である。CORSは許可するFRONTオリジンを環境別に完全一致で管理する。Cookie境界は[認証・権限](104_authentication.md)で管理する。
 
 ## WebSocket
 

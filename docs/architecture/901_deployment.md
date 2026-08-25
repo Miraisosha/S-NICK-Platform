@@ -17,14 +17,14 @@
 
 ## 現在のワークフロー
 
-2026年8月25日時点のワークフローは、`app/`内でPHP検証とViteビルドを行い、CakePHPと`webroot/build/`を単一の配置先へ同期する従来構成である。次の目標構成はまだ反映されていない。
+2026年8月25日時点のワークフローは、PHPの検証、`app/`の既存Viteビルド、`frontend/`の`operator`・`admin`ビルドを実行する。成果物にはCakePHP、`app/webroot/build/`および`frontend/dist/{app}/`を含め、単一の配置先へ同期する。
 
-- リポジトリ直下`frontend/`でのnpm依存管理
-- 利用者区分ごとのFRONTビルド
-- `api.squash-platform.com`と各FRONTサブドメインへの分離配備
-- GitHub Environmentの表示URLとヘルスチェックURLの`squash-platform.com`への変更
+- `frontend/`の依存管理とアプリ別ビルドは実装済みである。
+- `operator`と`admin`の成果物は、現在のリリース内の`frontend/operator/`、`frontend/admin/`へ格納する。
+- APIと各FRONTをサブドメイン別の配置先へ同期する処理は未実装である。
+- GitHub Environmentの表示URLとヘルスチェックURLには旧ドメイン設定が残っているため、`squash-platform.com`への切替が必要である。
 
-そのため、FRONT分離後の本番デプロイを有効にする前に、ワークフロー、GitHub Environmentおよびサーバー側配置先を同時に更新する。
+そのため、サブドメイン別の本番配備を有効にする前に、ワークフロー、GitHub Environmentおよびサーバー側配置先を同時に更新する。
 
 ## デプロイの検証順序
 

@@ -4,7 +4,7 @@ use Cake\Cache\Engine\FileEngine;
 use Cake\Database\Connection;
 use Cake\Database\Driver\Mysql;
 use Cake\Log\Engine\FileLog;
-use Cake\Mailer\Transport\MailTransport;
+use Cake\Mailer\Transport\SmtpTransport;
 use function Cake\Core\env;
 
 return [
@@ -79,6 +79,34 @@ return [
      */
     'Security' => [
         'salt' => env('SECURITY_SALT'),
+    ],
+
+    /*
+     * Password hashing and account policy configuration used by
+     * `App\Service\Auth\*` and the Authentication plugin's Password identifier.
+     *
+     * See docs/specifications/200_Operator.md (SCR-OPR-211/213/214) for the
+     * decided defaults. Values are overridable per environment via env vars.
+     */
+    'PasswordHasher' => [
+        'argon2id' => [
+            'memory_cost' => (int)env('PASSWORD_HASH_MEMORY_COST', 19456),
+            'time_cost' => (int)env('PASSWORD_HASH_TIME_COST', 2),
+            'threads' => (int)env('PASSWORD_HASH_THREADS', 1),
+        ],
+    ],
+    'PasswordPolicy' => [
+        'minLength' => (int)env('PASSWORD_MIN_LENGTH', 6),
+        'maxLength' => (int)env('PASSWORD_MAX_LENGTH', 64),
+    ],
+    'LoginLockout' => [
+        'maxFailures' => (int)env('LOGIN_LOCKOUT_MAX_FAILURES', 5),
+        'lockMinutes' => (int)env('LOGIN_LOCKOUT_MINUTES', 30),
+    ],
+    'AccountToken' => [
+        'expiryMinutes' => (int)env('ACCOUNT_TOKEN_EXPIRY_MINUTES', 60),
+        'resendCooldownSeconds' => (int)env('ACCOUNT_TOKEN_RESEND_COOLDOWN_SECONDS', 60),
+        'resendDailyLimit' => (int)env('ACCOUNT_TOKEN_RESEND_DAILY_LIMIT', 5),
     ],
 
     /*
@@ -221,19 +249,27 @@ return [
      */
     'EmailTransport' => [
         'default' => [
-            'className' => MailTransport::class,
+            'className' => SmtpTransport::class,
             /*
-             * The keys host, port, timeout, username, password, client and tls
-             * are used in SMTP transports
+             * SCR-OPR-215 (docs/specifications/200_Operator.md): production SMTP is
+             * お名前.com's mail71.onamae.ne.jp:465 over implicit SSL/TLS (hence the
+             * `ssl://` host prefix, which Cake\Network\Socket strips and passes to
+             * stream_socket_client - 'tls' stays false because that flag means
+             * STARTTLS-after-connect, which port 465/implicit-SSL doesn't use).
+             * The password is deliberately absent from every default here: it must
+             * come from `config/app_local.php` created directly on the production
+             * server (see docs/08_deployment.md "サーバー側の初回準備"), never from
+             * this file or from GitHub Actions.
+             *
+             * Local dev overrides all of this at once via EMAIL_TRANSPORT_DEFAULT_URL
+             * (see compose.yaml: "debug://", captured by DebugKit's Mail panel
+             * instead of actually connecting anywhere).
              */
-            'host' => 'localhost',
-            'port' => 25,
+            'host' => env('EMAIL_TRANSPORT_DEFAULT_HOST', 'ssl://mail71.onamae.ne.jp'),
+            'port' => (int)env('EMAIL_TRANSPORT_DEFAULT_PORT', 465),
             'timeout' => 30,
-            /*
-             * It is recommended to set these options through your environment or app_local.php
-             */
-            //'username' => null,
-            //'password' => null,
+            'username' => env('EMAIL_TRANSPORT_DEFAULT_USERNAME', 'info@s-nick.com'),
+            'password' => env('EMAIL_TRANSPORT_DEFAULT_PASSWORD', null),
             'client' => null,
             'tls' => false,
             'url' => env('EMAIL_TRANSPORT_DEFAULT_URL', null),
@@ -252,7 +288,7 @@ return [
     'Email' => [
         'default' => [
             'transport' => 'default',
-            'from' => 'you@localhost',
+            'from' => env('EMAIL_TRANSPORT_DEFAULT_USERNAME', 'info@s-nick.com'),
             /*
              * Will by default be set to config value of App.encoding, if that exists otherwise to UTF-8.
              */
@@ -323,6 +359,15 @@ return [
              * which is the recommended value in production environments
              */
             //'init' => ['SET GLOBAL innodb_stats_on_metadata = 0'],
+
+            /*
+             * DSN-style overrides (host/user/password/database) from the
+             * environment. compose.yaml (local Docker) and the production
+             * deploy workflow both set DATABASE_URL directly rather than
+             * relying on an untracked config/app_local.php, matching how
+             * EmailTransport.default.url is already read below.
+             */
+            'url' => env('DATABASE_URL', null),
         ],
 
         /*
@@ -339,6 +384,7 @@ return [
             'quoteIdentifiers' => false,
             'log' => false,
             //'init' => ['SET GLOBAL innodb_stats_on_metadata = 0'],
+            'url' => env('DATABASE_TEST_URL', null),
         ],
     ],
 
@@ -418,6 +464,37 @@ return [
      */
     'Session' => [
         'defaults' => 'php',
+        // In production FRONT (platform.s-nick.com) and API (api.s-nick.com)
+        // are separate subdomains of the same registrable domain; setting
+        // the cookie domain to the shared parent lets the session cookie
+        // reach the API from pages served by FRONT while staying
+        // SameSite=Lax (subdomains of one site are not cross-site).
+        // Left unset locally, where FRONT and API share the same host.
+        'ini' => array_filter([
+            'session.cookie_domain' => env('SESSION_COOKIE_DOMAIN', null),
+            'session.cookie_samesite' => 'Lax',
+        ]),
+    ],
+
+    /*
+     * Allowed origins for the separately-deployed FRONT (see
+     * src/Middleware/CorsMiddleware.php, applied to the `/api` scope only).
+     * Comma-separated in the env var; defaults to the local Vite dev server.
+     */
+    'Cors' => [
+        'allowedOrigins' => array_filter(array_map(
+            'trim',
+            explode(',', (string)env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')),
+        )),
+    ],
+
+    /*
+     * Base URL of the FRONT app, used to build links that must point at a
+     * real browser page rather than a JSON endpoint (e.g. the email
+     * verification and password reset links in AuthMailer).
+     */
+    'Frontend' => [
+        'baseUrl' => rtrim((string)env('FRONTEND_BASE_URL', 'http://localhost:5173'), '/'),
     ],
 
     /**

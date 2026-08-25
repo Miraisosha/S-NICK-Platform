@@ -62,6 +62,16 @@ return function (RouteBuilder $routes): void {
          */
         $builder->connect('/pages/*', 'Pages::display');
 
+        $builder->connect('/users/register', ['controller' => 'Users', 'action' => 'register']);
+        $builder->connect('/users/register/resend', ['controller' => 'Users', 'action' => 'resendVerification']);
+        $builder->connect('/users/verify-email', ['controller' => 'Users', 'action' => 'verifyEmail']);
+        $builder->connect('/users/login', ['controller' => 'Users', 'action' => 'login']);
+        $builder->connect('/users/logout', ['controller' => 'Users', 'action' => 'logout']);
+        $builder->connect('/users/forgot-password', ['controller' => 'Users', 'action' => 'forgotPassword']);
+        $builder->connect('/users/reset-password', ['controller' => 'Users', 'action' => 'resetPassword']);
+
+        $builder->connect('/dashboard', ['controller' => 'Dashboard', 'action' => 'index']);
+
         /*
          * Connect catchall routes for all controllers.
          *
@@ -78,19 +88,119 @@ return function (RouteBuilder $routes): void {
         $builder->fallbacks();
     });
 
-    /*
-     * If you need a different set of middleware or none at all,
-     * open new scope and define routes there.
-     *
-     * ```
-     * $routes->scope('/api', function (RouteBuilder $builder): void {
-     *     // No $builder->applyMiddleware() here.
-     *
-     *     // Parse specified extensions from URLs
-     *     // $builder->setExtensions(['json', 'xml']);
-     *
-     *     // Connect API actions here.
-     * });
-     * ```
-     */
+    // /api/v1/*: JSON API for the separately-deployed FRONT. Every action is
+    // connected explicitly with its HTTP method per
+    // docs/specifications/010_SystemArchitecture.md ("APIはCakePHPの自動
+    // フォールバックルートへ依存せず...") rather than relying on fallbacks().
+    $routes->scope('/api/v1', function (RouteBuilder $builder): void {
+        $builder->setRouteClass(DashedRoute::class);
+
+        $builder->post('/users/register', ['controller' => 'Users', 'action' => 'register', 'prefix' => 'Api/V1']);
+        $builder->post(
+            '/users/resend-verification',
+            ['controller' => 'Users', 'action' => 'resendVerification', 'prefix' => 'Api/V1'],
+        );
+        $builder->post('/users/verify-email', ['controller' => 'Users', 'action' => 'verifyEmail', 'prefix' => 'Api/V1']);
+        $builder->post('/users/login', ['controller' => 'Users', 'action' => 'login', 'prefix' => 'Api/V1']);
+        $builder->post('/users/logout', ['controller' => 'Users', 'action' => 'logout', 'prefix' => 'Api/V1']);
+        $builder->get('/users/me', ['controller' => 'Users', 'action' => 'me', 'prefix' => 'Api/V1']);
+        $builder->post(
+            '/users/forgot-password',
+            ['controller' => 'Users', 'action' => 'forgotPassword', 'prefix' => 'Api/V1'],
+        );
+        $builder->post(
+            '/users/reset-password',
+            ['controller' => 'Users', 'action' => 'resetPassword', 'prefix' => 'Api/V1'],
+        );
+
+        // /api/v1/admin/*: platform-admin JSON API, authenticated separately
+        // from the routes above (see Application::getAdminAuthenticationService()
+        // and docs/specifications/500_Admin.md §501).
+        $builder->post(
+            '/admin/login',
+            ['controller' => 'AdminUsers', 'action' => 'login', 'prefix' => 'Api/V1/Admin'],
+        );
+        $builder->post(
+            '/admin/logout',
+            ['controller' => 'AdminUsers', 'action' => 'logout', 'prefix' => 'Api/V1/Admin'],
+        );
+        $builder->get(
+            '/admin/me',
+            ['controller' => 'AdminUsers', 'action' => 'me', 'prefix' => 'Api/V1/Admin'],
+        );
+
+        // SCR-ADM-522 施設・コート管理 (admin-only, see FacilitiesController).
+        $builder->get(
+            '/admin/facilities',
+            ['controller' => 'Facilities', 'action' => 'index', 'prefix' => 'Api/V1/Admin'],
+        );
+        $builder->post(
+            '/admin/facilities',
+            ['controller' => 'Facilities', 'action' => 'add', 'prefix' => 'Api/V1/Admin'],
+        );
+        $builder->put(
+            '/admin/facilities/{id}',
+            ['controller' => 'Facilities', 'action' => 'edit', 'prefix' => 'Api/V1/Admin'],
+        )->setPass(['id']);
+        $builder->delete(
+            '/admin/facilities/{id}',
+            ['controller' => 'Facilities', 'action' => 'delete', 'prefix' => 'Api/V1/Admin'],
+        )->setPass(['id']);
+
+        // SCR-OPR-2401〜2404 イベント管理 (operator, see EventsController).
+        $builder->get('/events', ['controller' => 'Events', 'action' => 'index', 'prefix' => 'Api/V1']);
+        $builder->post('/events', ['controller' => 'Events', 'action' => 'add', 'prefix' => 'Api/V1']);
+        $builder->get(
+            '/events/{id}',
+            ['controller' => 'Events', 'action' => 'view', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->put(
+            '/events/{id}',
+            ['controller' => 'Events', 'action' => 'edit', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->delete(
+            '/events/{id}',
+            ['controller' => 'Events', 'action' => 'delete', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+
+        // SCR-OPR-2405 カテゴリ管理 (nested under an event, see EventsCategoriesController).
+        $builder->get(
+            '/events/{eventId}/categories',
+            ['controller' => 'EventsCategories', 'action' => 'index', 'prefix' => 'Api/V1'],
+        )->setPass(['eventId']);
+        $builder->post(
+            '/events/{eventId}/categories',
+            ['controller' => 'EventsCategories', 'action' => 'add', 'prefix' => 'Api/V1'],
+        )->setPass(['eventId']);
+        $builder->put(
+            '/events/{eventId}/categories/{id}',
+            ['controller' => 'EventsCategories', 'action' => 'edit', 'prefix' => 'Api/V1'],
+        )->setPass(['eventId', 'id']);
+        $builder->delete(
+            '/events/{eventId}/categories/{id}',
+            ['controller' => 'EventsCategories', 'action' => 'delete', 'prefix' => 'Api/V1'],
+        )->setPass(['eventId', 'id']);
+
+        // SCR-OPR-261: operators browse the admin-managed facility/court
+        // master read-only, to select courts for an event.
+        $builder->get('/facilities', ['controller' => 'Facilities', 'action' => 'index', 'prefix' => 'Api/V1']);
+
+        // SCR-OPR-2402/2404 開催場所・使用コート・利用時間 (see EventsController).
+        $builder->get(
+            '/events/{id}/courts',
+            ['controller' => 'Events', 'action' => 'courts', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->put(
+            '/events/{id}/courts',
+            ['controller' => 'Events', 'action' => 'updateCourts', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->get(
+            '/events/{id}/usage-times',
+            ['controller' => 'Events', 'action' => 'usageTimes', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+        $builder->put(
+            '/events/{id}/usage-times',
+            ['controller' => 'Events', 'action' => 'updateUsageTimes', 'prefix' => 'Api/V1'],
+        )->setPass(['id']);
+    });
 };

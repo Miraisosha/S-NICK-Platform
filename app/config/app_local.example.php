@@ -32,6 +32,18 @@ return [
     ],
 
     /*
+     * Uncomment and adjust to override the Argon2id / password policy / lockout /
+     * account-token defaults from app.php for this environment.
+     */
+    // 'PasswordHasher' => [
+    //     'argon2id' => [
+    //         'memory_cost' => 19456,
+    //         'time_cost' => 2,
+    //         'threads' => 1,
+    //     ],
+    // ],
+
+    /*
      * Connection information used by the ORM to connect
      * to your application's datastores.
      *

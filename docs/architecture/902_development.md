@@ -6,15 +6,15 @@
 
 ## 現在の構成
 
-2026年8月25日時点では、CakePHPとVue.jsの既存ソースはいずれも`app/`配下にある。目標とする`frontend/`分離は未実施であり、本書では実際に存在しないディレクトリやnpmスクリプトを実行手順として扱わない。
+2026年8月25日時点では、CakePHP APIを`app/`、Vue.js FRONTを`frontend/`で管理している。FRONTは`operator`と`admin`の独立アプリを実装済みである。
 
 | サービス | 用途 | バージョン・状態 |
 |---|---|---|
 | `app` | Apache、PHP、Composer、CakePHP | PHP 8.5 / CakePHP 5.4 |
 | `db` | ローカルデータベース | MySQL 8.4 LTS（2026年8月18日時点の暫定版） |
-| `node` | `app/`のVue.js・Vite依存管理とビルド | Node.js 24、`tools`プロファイル |
+| `node` | `frontend/`のVue.js・Vite依存管理とビルド | Node.js 24、`tools`プロファイル |
 
-目標ディレクトリと移行時の確認事項は[ディレクトリ構成](102_directory-structure.md)を参照する。
+ソース配置と残る移行事項は[ディレクトリ構成](102_directory-structure.md)を参照する。
 
 ## 前提
 
@@ -29,7 +29,7 @@ PowerShellでリポジトリ直下へ移動し、ローカル設定を作成す�
 ```powershell
 Copy-Item .env.example .env
 docker compose run --rm app composer install
-docker compose --profile tools run --rm --no-deps node npm install
+docker compose --profile tools run --rm --no-deps node npm ci
 ```
 
 `.env`はGit管理外とし、本番の認証情報を記載しない。
@@ -61,24 +61,40 @@ docker compose down
 
 CakePHPは`http://localhost:8080`で確認する。`.env`の`APP_PORT`を変更した場合はそのポートを使用する。
 
-## 現在のFRONTビルド
+## フロントエンド（Vue.js）
 
-現在のVue.jsソースは`app/resources/js/front/`、npm設定は`app/package.json`にある。
+`frontend/`はAPIと別に依存関係を管理し、利用者区分ごとに独立したViteエントリーを持つ。現在は`operator`と`admin`を実装済みである。
 
 ```powershell
-# 1回ビルド
-docker compose --profile tools run --rm --no-deps node npm run build
-
-# 監視ビルド
+# nodeサービスを起動
 docker compose --profile tools up -d node
-docker compose --profile tools exec node npm run dev
+
+# 運営者FRONTを起動（Composeの公開ポートに合わせる）
+docker compose --profile tools exec node npm run dev:operator -- --host 0.0.0.0 --port 5173
+
+# 管理者FRONTをビルド
+docker compose --profile tools exec node npm run build:admin
 ```
 
-成果物は現在のVite設定に従って`app/webroot/build/`へ出力される。
+ホストのNode.jsを使用する場合は、`frontend/`で`npm ci`後に`npm run dev:operator`または`npm run dev:admin`を実行する。現在のVite設定の既定ポートは`5174`である。Compose経由では公開設定に合わせて`5173`を明示する。2つのFRONTを同時に起動する場合は、一方へ別ポートを指定する。
 
-## FRONT分離後の予定
+FRONTは`frontend/src/api/client.js`からCookieベースのセッションを使用してAPIを呼び出す。FRONTのポートを変更する場合は、`.env`の`FRONTEND_PORT`、APIのCORS許可オリジンおよびメールリンクの遷移先を一致させる。
 
-`frontend/`への移行後は、nodeサービスのマウント先、npmキャッシュ、Vite開発サーバー、アプリ別ポート、CORS許可オリジンおよびビルドコマンドを更新する。移行完了前に`cd frontend`や`npm run dev:operator`等を標準手順にはしない。
+ビルド成果物は`frontend/dist/operator/`または`frontend/dist/admin/`へ出力する。`app/resources/js/front/`は移行期間中の既存エントリーとして残っているが、新しい利用者別FRONTは`frontend/`へ追加する。
+
+## テスト用アカウント
+
+開発環境では、確認済みの運営者・管理者アカウントをコマンドで作成できる。本番では使用しない。
+
+```powershell
+# 運営者アカウント
+docker compose exec -e OPERATOR_BOOTSTRAP_PASSWORD='パスワード' app bin/cake create_operator --email=operator@example.com
+
+# 管理者アカウント
+docker compose exec -e ADMIN_BOOTSTRAP_PASSWORD='パスワード' app bin/cake create_admin --email=admin@example.com --name="管理者"
+```
+
+`composer test`と`composer check`は現在、開発用データベースと同じデータベースを使用するため、実行すると開発データが削除される。必要なデータを保持したまま実行しない。
 
 ## テスト
 
@@ -87,7 +103,7 @@ docker compose --profile tools exec node npm run dev
 docker compose exec app composer check
 ```
 
-テスト用データベースの分離状況を確認せずに、本番または保持が必要な開発データへテストを実行しない。テスト用アカウントの作成方法は、対応するコマンドが実装された時点で追記する。
+テスト用データベースの分離状況を確認せずに、本番または保持が必要な開発データへテストを実行しない。
 
 ## ローカルデータベース接続
 

@@ -22,32 +22,30 @@
 
 ## 論理構成
 
-初期構成は、CakePHPによる単一API、単一MySQLデータベース、利用者区分ごとに分けたVue.js FRONTから構成する。FRONTとAPIは同一リポジトリで管理するが、目標構成ではソース、依存関係、ビルドおよび配備単位を分離する。
+2026年8月25日時点では、CakePHP APIを`app/`、Vue.js FRONTを`frontend/`で管理している。FRONTは利用者区分ごとに独立したViteエントリーを持ち、現在は`operator`と`admin`を実装済みである。各FRONTはHTTPSで`/api/v1/...`のJSON APIを呼び出し、CakePHPが単一のMySQLデータベースへ接続する。
 
 ```mermaid
 flowchart LR
     subgraph Clients["利用端末"]
-        Public["パブリック"]
         Operator["運営者"]
-        Marker["マーカー"]
-        Player["選手"]
         Admin["管理者"]
-        Display["大型表示・OBS"]
+        Legacy["既存CakePHP画面"]
     end
 
-    Public --> Front["Vue.js FRONT"]
-    Operator --> Front
-    Marker --> Front
-    Player --> Front
-    Admin --> Front
-    Display --> Front
-    Front -->|HTTPS / JSON| API["CakePHP API"]
+    subgraph Frontend["Vue.js FRONT（frontend/）"]
+        OperatorFront["operatorアプリ"]
+        AdminFront["adminアプリ"]
+    end
+
+    Operator --> OperatorFront
+    Admin --> AdminFront
+    OperatorFront -->|HTTPS / JSON| API["CakePHP API（app/）"]
+    AdminFront -->|HTTPS / JSON| API
+    Legacy -->|HTTPS / HTML| API
     API --> DB[(MySQL)]
-    API --> Realtime["WebSocket通知基盤"]
-    Realtime --> Front
 ```
 
-`public`、`operator`、`marker`、`player`、`admin`等は、URL、画面、権限および配備対象を分ける利用者区分である。業務データや試合状態を利用者区分ごとに複製せず、APIとデータベースを共有する。
+`home`、`entry`、`player`、`marker`、`live`、`display`の各FRONTとWebSocket通知基盤は未実装である。また、移行期間中の互換性のため、CakePHPによるHTML画面と`app/resources/js/front/`の既存Viteエントリーも残っている。現在の配置と実装状態は[ディレクトリ構成](102_directory-structure.md)、本番への配備状態は[デプロイ](901_deployment.md)で管理する。
 
 ## 本番ドメイン
 
@@ -63,7 +61,6 @@ flowchart LR
 | 管理者 | `https://admin.squash-platform.com` | 決定済み |
 | API | `https://api.squash-platform.com/api/v1/...` | 決定済み |
 
-各FRONTの配置先、TLS証明書、DNSおよびCookieの詳細は[サーバ・インフラ構成](103_infrastructure.md)と[認証・権限](08_authentication.md)で管理する。
 
 ## データ更新とリアルタイム通知
 
@@ -77,7 +74,7 @@ flowchart LR
 
 | 資料 | 管理する内容 |
 |---|---|
-| [認証・権限](08_authentication.md) | 認証区分、セッション、Cookie、認可 |
+| [認証・権限](104_authentication.md) | 認証区分、セッション、Cookie、認可 |
 | [ディレクトリ構成](102_directory-structure.md) | APIとFRONTのソース配置、ビルド境界 |
 | [サーバ・インフラ構成](103_infrastructure.md) | 本番ホスティング、ドメイン、会場ネットワーク・機材 |
 | [データベース](201_database.md) | DBMS、接続、マイグレーション、バックアップ方針 |
@@ -96,4 +93,4 @@ flowchart LR
 - 開発、検証、本番環境の具体的な分離方法
 - 本番MySQLのバージョン、TLS接続、ポートおよび照合順序
 - 性能目標、監視、バックアップ、復旧およびメンテナンス方式
-- APIと利用者別FRONTを分離配備するための移行手順
+- APIと利用者別FRONTをサブドメインごとに分離配備するための移行手順

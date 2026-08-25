@@ -16,7 +16,12 @@ declare(strict_types=1);
  */
 namespace App;
 
+use App\Middleware\CorsMiddleware;
 use App\Middleware\HostHeaderMiddleware;
+use Authentication\AuthenticationService;
+use Authentication\AuthenticationServiceInterface;
+use Authentication\AuthenticationServiceProviderInterface;
+use Authentication\Middleware\AuthenticationMiddleware;
 use Cake\Core\Configure;
 use Cake\Core\ContainerInterface;
 use Cake\Datasource\FactoryLocator;
@@ -29,16 +34,15 @@ use Cake\Http\MiddlewareQueue;
 use Cake\ORM\Locator\TableLocator;
 use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Application setup class.
  *
  * This defines the bootstrapping logic and middleware layers you
  * want to use in your application.
- *
- * @extends \Cake\Http\BaseApplication<\App\Application>
  */
-class Application extends BaseApplication
+class Application extends BaseApplication implements AuthenticationServiceProviderInterface
 {
     /**
      * Load all the application configuration and bootstrap logic.
@@ -75,6 +79,12 @@ class Application extends BaseApplication
             // the incoming Host header against it.
             ->add(new HostHeaderMiddleware())
 
+            // CORS for the separately-deployed FRONT calling the /api/v1/*
+            // JSON API (see src/Middleware/CorsMiddleware.php). Placed
+            // before routing so an OPTIONS preflight is answered even
+            // though it never matches a connected route.
+            ->add(new CorsMiddleware())
+
             // Handle plugin/theme assets like CakePHP normally does.
             ->add(new AssetMiddleware([
                 'cacheTime' => Configure::read('Asset.cacheTime'),
@@ -87,15 +97,39 @@ class Application extends BaseApplication
             ->add(new RoutingMiddleware($this))
 
             // Parse various types of encoded request bodies so that they are
-            // available as array through $request->getData()
+            // available as array through $request->getData().
             // https://book.cakephp.org/5/en/controllers/middleware.html#body-parser-middleware
+            //
+            // Must run before AuthenticationMiddleware: FormAuthenticator
+            // reads credentials via $request->getData(), which for a JSON
+            // body is only populated once this middleware has parsed it.
+            // HTML logins (application/x-www-form-urlencoded) worked even
+            // with the reversed order because PHP itself populates $_POST
+            // for that content type - only the JSON API login was broken by
+            // the original skeleton ordering.
             ->add(new BodyParserMiddleware())
+
+            // Adds identification/authentication information to the request.
+            // https://book.cakephp.org/authentication/4/en/index.html
+            ->add(new AuthenticationMiddleware($this))
 
             // Cross Site Request Forgery (CSRF) Protection Middleware
             // https://book.cakephp.org/5/en/security/csrf.html#cross-site-request-forgery-csrf-middleware
-            ->add(new CsrfProtectionMiddleware([
-                'httponly' => true,
-            ]));
+            //
+            // The /api/v1/* JSON API is exempt: it has no HTML forms to
+            // carry a CSRF token, and is protected instead by the
+            // CorsMiddleware's strict origin allow-list together with
+            // SameSite=Lax session cookies (see docs/specifications/
+            // 010_SystemArchitecture.md and the FRONT/API migration plan).
+            ->add(
+                (new CsrfProtectionMiddleware(['httponly' => true]))
+                    ->skipCheckCallback(
+                        fn(ServerRequestInterface $request): bool => str_starts_with(
+                            $request->getUri()->getPath(),
+                            '/api/',
+                        ),
+                    ),
+            );
 
         return $middlewareQueue;
     }
@@ -125,5 +159,125 @@ class Application extends BaseApplication
         // $eventManager->on(new SomeCustomListenerClass());
 
         return $eventManager;
+    }
+
+    /**
+     * Returns a service provider instance.
+     *
+     * @param \Psr\Http\Message\ServerRequestInterface $request Request
+     * @return \Authentication\AuthenticationServiceInterface
+     */
+    public function getAuthenticationService(ServerRequestInterface $request): AuthenticationServiceInterface
+    {
+        if (str_starts_with($request->getUri()->getPath(), '/api/v1/admin/')) {
+            return $this->getAdminAuthenticationService();
+        }
+
+        $service = new AuthenticationService([
+            'unauthenticatedRedirect' => '/users/login',
+            'queryParam' => 'redirect',
+        ]);
+
+        // cakephp/authentication 4.x builds each authenticator's identifier
+        // from an `identifier` sub-config (via IdentifierFactory) rather
+        // than a shared, service-level loadIdentifier() call.
+        $passwordIdentifier = [
+            'className' => 'Authentication.Password',
+            'fields' => [
+                'username' => 'email',
+                'password' => 'password_hash',
+            ],
+            'resolver' => [
+                'className' => 'Authentication.Orm',
+                'userModel' => 'Users',
+                'finder' => 'loginable',
+            ],
+            'passwordHasher' => [
+                'className' => 'Authentication.Default',
+                'hashType' => PASSWORD_ARGON2ID,
+                'hashOptions' => (array)Configure::read('PasswordHasher.argon2id'),
+            ],
+        ];
+
+        $formFields = [
+            'username' => 'email',
+            'password' => 'password',
+        ];
+
+        $service->loadAuthenticator('Authentication.Session');
+
+        // Two Form authenticator instances, one per login endpoint.
+        // FormAuthenticator's `loginUrl` only ever checks a single URL
+        // (Authentication\UrlChecker\DefaultUrlChecker::check() passes it
+        // straight to Router::url() as one route/URL, not a list to try in
+        // turn - the "or an array of URLs" in its docblock means an
+        // array-style route, not multiple alternatives) - so both the HTML
+        // (App\Controller\UsersController) and JSON API
+        // (App\Controller\Api\V1\UsersController) login actions need their
+        // own authenticator instance rather than sharing one.
+        $service->loadAuthenticator('Form', [
+            'className' => 'Authentication.Form',
+            'identifier' => $passwordIdentifier,
+            'loginUrl' => '/users/login',
+            'fields' => $formFields,
+        ]);
+        $service->loadAuthenticator('ApiForm', [
+            'className' => 'Authentication.Form',
+            'identifier' => $passwordIdentifier,
+            'loginUrl' => '/api/v1/users/login',
+            'fields' => $formFields,
+        ]);
+
+        return $service;
+    }
+
+    /**
+     * Authentication service for `/api/v1/admin/*` requests. Kept entirely
+     * separate from the regular-user service above: a different identifier
+     * (`Admins` table, not `Users`), and a different session key
+     * (`AdminAuth`, not `Auth`) so being logged in as a platform admin and
+     * being logged in as an operator/user are independent of each other
+     * within the same browser session (docs/specifications/500_Admin.md
+     * §501 "認証ガード、ログインセッション...は通常ユーザーと分離する" -
+     * see the implementation plan's judgment call on session separation for
+     * why this stops short of a fully separate cookie/subdomain).
+     *
+     * @return \Authentication\AuthenticationServiceInterface
+     */
+    private function getAdminAuthenticationService(): AuthenticationServiceInterface
+    {
+        $service = new AuthenticationService([
+            'unauthenticatedRedirect' => '/api/v1/admin/login',
+        ]);
+
+        $service->loadAuthenticator('Authentication.Session', [
+            'sessionKey' => 'AdminAuth',
+        ]);
+        $service->loadAuthenticator('Authentication.Form', [
+            'loginUrl' => '/api/v1/admin/login',
+            'fields' => [
+                'username' => 'email',
+                'password' => 'password',
+            ],
+            'identifier' => [
+                'className' => 'Authentication.Password',
+                'fields' => [
+                    'username' => 'email',
+                    'password' => 'password_hash',
+                ],
+                'resolver' => [
+                    'className' => 'Authentication.Orm',
+                    'userModel' => 'Admins',
+                    'finder' => 'loginable',
+                ],
+                'passwordHasher' => [
+                    'className' => 'Authentication.Default',
+                    'hashType' => PASSWORD_ARGON2ID,
+                    'hashOptions' => (array)Configure::read('PasswordHasher.argon2id'),
+                ],
+            ],
+        ]);
+
+        return $service;
     }
 }

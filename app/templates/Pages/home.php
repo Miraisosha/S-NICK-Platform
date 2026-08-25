@@ -63,9 +63,10 @@ endif;
     <?= $this->Html->charset() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>
-        CakePHP: the rapid development PHP framework:
+        Squash Platform:
         <?= $this->fetch('title') ?>
     </title>
+    <link rel="icon" type="image/svg+xml" href="/img/squash-platform-logo.svg">
     <?= $this->Html->meta('icon') ?>
 
     <?= $this->Html->css(['normalize.min', 'milligram.min', 'fonts', 'cake', 'home']) ?>

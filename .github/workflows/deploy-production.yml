@@ -19,6 +19,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: snick_platform_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+          --character-set-server=utf8mb4
+          --collation-server=utf8mb4_0900_ai_ci
+
+    env:
+      DATABASE_TEST_URL: mysql://root@127.0.0.1:3306/snick_platform_test?encoding=utf8mb4&timezone=UTC
+
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -44,7 +63,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: |
+            app/package-lock.json
+            frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: app
@@ -53,6 +74,28 @@ jobs:
       - name: Build frontend assets
         working-directory: app
         run: npm run build
+
+      # `frontend/` (Vue.js FRONT) is managed independently from `app/`'s own
+      # bundled JS above - see docs/specifications/010_SystemArchitecture.md
+      # "ディレクトリとAPI・FRONTの分離". Each app under frontend/src/apps/ is
+      # its own Vite entry, built separately (`vite build --mode <app>`) and
+      # deployed at its own subdomain; only the build output is folded into
+      # the release artifact (as `release/frontend/<app>/`). Actually serving
+      # each app from its subdomain is a separate hosting-configuration task
+      # (see the FRONT/API migration plan's judgment call #4). Add a line
+      # here for each new app as it's built (see frontend/entries/ for the
+      # full set).
+      - name: Install FRONT (Vue) dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build FRONT (Vue) - operator
+        working-directory: frontend
+        run: npm run build:operator
+
+      - name: Build FRONT (Vue) - admin
+        working-directory: frontend
+        run: npm run build:admin
 
       - name: Prepare production PHP dependencies
         working-directory: app
@@ -95,6 +138,12 @@ jobs:
           test -f release/vendor/autoload.php
           test -f release/webroot/build/assets/app.js
           test -f release/webroot/build/assets/main.css
+
+          mkdir -p release/frontend/operator release/frontend/admin
+          rsync --recursive --links --perms --times frontend/dist/operator/ release/frontend/operator/
+          rsync --recursive --links --perms --times frontend/dist/admin/ release/frontend/admin/
+          test -f release/frontend/operator/index.html
+          test -f release/frontend/admin/index.html
 
       - name: Upload deployment artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

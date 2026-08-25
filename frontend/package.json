@@ -1,0 +1,25 @@
+{
+  "name": "squash-platform-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Squash Platform FRONT (Vue.js) - separately built and deployed from the CakePHP API in app/",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:operator": "vite --mode operator",
+    "dev:admin": "vite --mode admin",
+    "build:operator": "vite build --mode operator",
+    "build:admin": "vite build --mode admin"
+  },
+  "dependencies": {
+    "pinia": "^2.2.6",
+    "vue": "^3.5.41",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "^8.2.1"
+  }
+}
