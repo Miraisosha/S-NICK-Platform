@@ -1,6 +1,6 @@
 version: "1.0-draft"
 role: marker
-document: ../300_Marker.md
+document: ../5000_marker/README.md
 inherited_from: "マーカー機能設計"
 
 modes:

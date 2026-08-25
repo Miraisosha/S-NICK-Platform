@@ -1,5 +1,5 @@
 version: "1.0-draft"
-document: ../300_Marker.md
+document: ../5000_marker/README.md
 note: "試合状態とゲーム状態を分離する。match_state_machine.statesを試合状態の正式な内部コードとし、例外遷移は詳細設計で確定する。"
 
 match_state_machine:
