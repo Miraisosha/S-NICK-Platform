@@ -4,67 +4,77 @@
 
 本書は、APIとFRONTの責務、ソース配置、依存関係およびビルド境界を定義する。詳細な画面構成は[フロントエンド](301_frontend.md)、CakePHP内部の責務は[バックエンド](302_backend.md)、URL設計は[API](303_api.md)を参照する。
 
-## 状態
 
-- **決定済み・実装済み**：APIとFRONTは同一リポジトリで管理し、APIを`app/`、FRONTを`frontend/`へ分けて依存関係を管理する。
-- **決定済み・一部実装済み**：FRONTは利用者区分ごとに独立したViteエントリーを持つ。2026年8月25日時点では`operator`と`admin`を実装済みである。
-- **移行中**：`app/resources/js/front/`とCakePHPのHTML画面は互換性のため残っている。廃止時期は検討中である。
-
-## 現在のディレクトリ
+## ディレクトリ
 
 ```text
 （リポジトリ直下）
-├─ app/                         # API（CakePHP）
-│  ├─ composer.json
+├─ .github/
+│  └─ workflows/
+│     └─ deploy-production.yml      # 本番デプロイ
+├─ app/                             # API・既存画面（CakePHP）
+│  ├─ composer.json                 # PHP依存関係
 │  ├─ composer.lock
-│  ├─ config/
-│  │  └─ routes.php
-│  ├─ src/
-│  │  ├─ Controller/
-│  │  │  └─ Api/V1/            # JSON API Controller
-│  │  ├─ Model/                 # CakePHP Entity・Table
-│  │  └─ Service/               # 認証・イベント等のApplication Service
-│  ├─ resources/js/front/       # 移行期間中の既存Viteエントリー
-│  ├─ templates/                # 移行期間中のHTML画面、診断・エラー画面
-│  └─ tests/TestCase/
-│     └─ Controller/Api/V1/
-├─ frontend/                    # FRONT（Vue.js / Vite）
-│  ├─ package.json
+│  ├─ package.json                  # 既存FRONTの依存関係
 │  ├─ package-lock.json
-│  ├─ vite.config.js
+│  ├─ vite.config.js                # 既存FRONTのビルド設定
+│  ├─ config/
+│  │  ├─ Migrations/                # データベースマイグレーション
+│  │  └─ routes.php                 # HTML・JSON APIルート
+│  ├─ resources/js/front/           # 移行期間中の既存Viteエントリー
+│  ├─ src/
+│  │  ├─ Command/                   # 運用・開発用CakePHPコマンド
+│  │  ├─ Controller/
+│  │  │  └─ Api/V1/                # JSON API Controller
+│  │  │     └─ Admin/               # 管理者専用API
+│  │  ├─ Mailer/                    # メール作成・送信
+│  │  ├─ Middleware/                # CORS等のHTTP共通処理
+│  │  ├─ Model/
+│  │  │  ├─ Entity/                 # CakePHP Entity
+│  │  │  └─ Table/                  # CakePHP Table
+│  │  └─ Service/
+│  │     ├─ Admin/                  # 管理者業務
+│  │     ├─ Auth/                   # 認証・アカウント
+│  │     └─ Event/                  # イベント業務
+│  ├─ templates/                    # 既存HTML、メール、エラー画面
+│  ├─ tests/TestCase/               # PHPテスト
+│  └─ webroot/                      # CakePHP公開ディレクトリ
+│     └─ build/                     # 既存FRONTのビルド成果物
+├─ frontend/                        # 利用者別FRONT（Vue.js / Vite）
+│  ├─ package.json                  # FRONT依存関係・アプリ別コマンド
+│  ├─ package-lock.json
+│  ├─ vite.config.js                # アプリ別開発・ビルド設定
 │  ├─ entries/
-│  │  ├─ operator/index.html
-│  │  └─ admin/index.html
+│  │  ├─ operator/index.html        # 運営者FRONTのHTMLエントリー
+│  │  └─ admin/index.html           # 管理者FRONTのHTMLエントリー
+│  ├─ public/                       # ビルド時にそのまま配信する静的ファイル
 │  └─ src/
+│     ├─ api/                       # 共通APIクライアント
 │     ├─ apps/
-│     │  ├─ operator/           # 運営者アプリ
-│     │  └─ admin/              # 管理者アプリ
-│     ├─ router/                # 全アプリ共通のルーター初期化・ガード
-│     ├─ components/common/     # 共有UI部品
-│     ├─ api/                   # 共有APIクライアント
-│     ├─ stores/                # 共有Piniaストア
-│     ├─ composables/
-│     ├─ utils/
-│     └─ assets/
-├─ docker/                      # ローカル開発用コンテナ
-├─ docs/
-└─ compose.yaml
+│     │  ├─ operator/               # 運営者アプリ
+│     │  └─ admin/                  # 管理者アプリ
+│     ├─ assets/                    # 共通CSS・画像
+│     ├─ components/common/         # 共通UI部品
+│     ├─ router/                    # 共通ルーター初期化・ガード
+│     ├─ stores/                    # Piniaストア
+│     └─ utils/                     # 共通ユーティリティ
+├─ docker/php/                      # ローカル開発用PHP・Apache設定
+├─ docs/                            # 設計・仕様資料
+└─ compose.yaml                     # ローカル開発サービス定義
 ```
 
 ## FRONTアプリ
 
-| アプリコード | 用途 | 本番ドメイン | 導入時期 | 実装状態 |
-|---|---|---|---|---|
-| `home` | 公開ランディング | `squash-platform.com` | フェーズ1 | 未実装 |
-| `operator` | 運営者・スタッフ | `operator.squash-platform.com` | フェーズ1 | 実装中 |
-| `entry` | Webエントリー | `entry.squash-platform.com` | フェーズ3 | 未実装 |
-| `player` | 選手マイページ | `player.squash-platform.com` | フェーズ3 | 未実装 |
-| `marker` | マーカー | `marker.squash-platform.com` | フェーズ1 | 未実装 |
-| `live` | 配信・OBS | `live.squash-platform.com` | フェーズ2以降 | 未実装 |
-| `display` | 観客・大型表示 | `display.squash-platform.com` | フェーズ1 | 未実装 |
-| `admin` | プラットフォーム管理 | `admin.squash-platform.com` | フェーズ1 | 実装中 |
-
-フェーズ前のアプリを空の雛形として先行実装するかは検討中とし、必要になるまでディレクトリの存在を必須にしない。
+| アプリコード | 用途 | 本番ドメイン 
+|---|---|---|
+| `home` | 公開ランディング | `squash-platform.com` 
+| `operator` | 運営者・スタッフ | `operator.squash-platform.com`
+| `entry` | Webエントリー | `entry.squash-platform.com`
+| `player` | 選手マイページ | `player.squash-platform.com`
+| `marker` | マーカー | `marker.squash-platform.com`
+| `live` | ライブ配信 | `live.squash-platform.com`
+| `display` | 観客・大型表示 | `display.squash-platform.com`
+| `admin` | プラットフォーム管理 | `admin.squash-platform.com` 
 
 ## 配置規約
 

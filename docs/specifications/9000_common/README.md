@@ -13,6 +13,7 @@
 | 9201 | 共通データベース要件 | [9201_database.md](9201_database.md) |
 | 9301 | リアルタイム同期 | [9301_realtime_sync.md](9301_realtime_sync.md) |
 | 9401 | 認証・権限 | [9401_authentication_authorization.md](9401_authentication_authorization.md) |
+| 9402 | 権限マトリクス | [9402_authorization_matrix.md](9402_authorization_matrix.md) |
 | 9501 | 通知 | [9501_notifications.md](9501_notifications.md) |
 | 9601 | 共通UI | [9601_common_ui.md](9601_common_ui.md) |
 | 9701 | 配信・ネットワーク | [9701_streaming_network.md](9701_streaming_network.md) |
